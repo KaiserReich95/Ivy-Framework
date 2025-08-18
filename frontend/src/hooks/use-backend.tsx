@@ -319,6 +319,18 @@ export const useBackend = (
             window.open(url, '_blank');
           });
 
+          connection.on('Redirect', (url: string) => {
+            logger.debug(`[${connection.connectionId}] Redirect`, { url });
+            // Update the URL without reloading the page
+            if (url.startsWith('/')) {
+              // For path-based redirects, update the pathname
+              window.history.pushState({}, '', url);
+            } else {
+              // For full URL redirects
+              window.location.href = url;
+            }
+          });
+
           connection.on('ApplyTheme', (css: string) => {
             logger.debug(`[${connection.connectionId}] ApplyTheme`);
 
@@ -371,6 +383,7 @@ export const useBackend = (
         connection.off('SetJwt');
         connection.off('SetTheme');
         connection.off('OpenUrl');
+        connection.off('Redirect');
         connection.off('ApplyTheme');
         connection.off('reconnecting');
         connection.off('reconnected');

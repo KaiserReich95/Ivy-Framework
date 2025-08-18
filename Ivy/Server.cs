@@ -8,6 +8,7 @@ using Ivy.Chrome;
 using Ivy.Connections;
 using Ivy.Core;
 using Ivy.Themes;
+using Ivy.Middleware;
 using Ivy.Views;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -428,6 +429,9 @@ public class Server
 
         app.UseRouting();
         app.UseCors();
+
+        // Add path-to-appId conversion middleware
+        app.UsePathToAppId();
 
         app.MapControllers();
         app.MapHub<AppHub>("/messages");
