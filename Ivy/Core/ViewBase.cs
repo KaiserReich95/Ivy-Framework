@@ -219,5 +219,7 @@ public abstract class ViewBase() : IView, IViewContextOwner
     protected T? UseArgs<T>() where T : class =>
         this.Context.UseArgs<T>();
 
+    public virtual void ThisIsAHackButPleaseSetTheInitialAppId(string? appId)
+    {
+    }
 }
-

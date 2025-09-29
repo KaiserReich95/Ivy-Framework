@@ -24,13 +24,19 @@ public class AppHub(
     ILogger<AppHub> logger
     ) : Hub
 {
-    public static string GetAppId(Server server, HttpContext httpContext)
+    public static (string AppId, string? NavigationAppId) GetAppId(Server server, HttpContext httpContext)
     {
         string? appId = server.DefaultAppId;
+        string? navigationAppId = null;
 
         if (httpContext!.Request.Query.ContainsKey("appId"))
         {
             appId = httpContext!.Request.Query["appId"].ToString();
+        }
+
+        if (httpContext!.Request.Query.ContainsKey("navigationAppId"))
+        {
+            navigationAppId = httpContext!.Request.Query["navigationAppId"].ToString();
         }
 
         if (string.IsNullOrEmpty(appId))
@@ -38,7 +44,7 @@ public class AppHub(
             appId = server.DefaultAppId ?? server.AppRepository.GetAppOrDefault(null).Id;
         }
 
-        return appId;
+        return (appId, navigationAppId);
     }
 
     public static string GetMachineId(HttpContext httpContext)
@@ -80,7 +86,7 @@ public class AppHub(
             var appServices = new ServiceCollection();
 
             var httpContext = Context.GetHttpContext()!;
-            var appId = GetAppId(server, httpContext);
+            var (appId, navigationAppId) = GetAppId(server, httpContext);
 
             var isAuthProtected = server.AuthProviderType != null;
             AuthToken? authToken = null, oldAuthToken = null;
@@ -147,6 +153,10 @@ public class AppHub(
             var serviceProvider = new CompositeServiceProvider(appServices, server.Services);
 
             var app = appDescriptor.CreateApp();
+            if (!string.IsNullOrWhiteSpace(navigationAppId))
+            {
+                app.ThisIsAHackButPleaseSetTheInitialAppId(navigationAppId);
+            }
 
             var widgetTree = new WidgetTree(app, contentBuilder, serviceProvider);
 

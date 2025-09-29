@@ -427,11 +427,11 @@ public class Server
 
         var logger = _args.Verbose ? app.Services.GetRequiredService<ILogger<Server>>() : new NullLogger<Server>();
 
+
+        app.UsePathToAppId();
+
         app.UseRouting();
         app.UseCors();
-
-        // Add path-to-appId conversion middleware
-        app.UsePathToAppId();
 
         app.MapControllers();
         app.MapHub<AppHub>("/messages");

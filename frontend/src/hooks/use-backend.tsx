@@ -124,7 +124,8 @@ function applyUpdateMessage(
 export const useBackend = (
   appId: string | null,
   appArgs: string | null,
-  parentId: string | null
+  parentId: string | null,
+  navigationAppId: string | null = null
 ) => {
   const [connection, setConnection] = useState<signalR.HubConnection | null>(
     null
@@ -246,7 +247,7 @@ export const useBackend = (
 
     const newConnection = new signalR.HubConnectionBuilder()
       .withUrl(
-        `${getIvyHost()}/messages?appId=${appId ?? ''}&appArgs=${appArgs ?? ''}&machineId=${machineId}&parentId=${parentId ?? ''}`
+        `${getIvyHost()}/messages?appId=${appId ?? ''}&appArgs=${appArgs ?? ''}&machineId=${machineId}&parentId=${parentId ?? ''}&navigationAppId=${navigationAppId ?? ''}`
       )
       .withAutomaticReconnect()
       .build();

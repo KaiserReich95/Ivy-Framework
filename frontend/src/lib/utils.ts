@@ -8,7 +8,73 @@ export function cn(...inputs: ClassValue[]) {
 
 export function getAppId(): string | null {
   const urlParams = new URLSearchParams(window.location.search);
-  return urlParams.get('appId');
+  const appIdFromParams = urlParams.get('appId');
+  if (appIdFromParams) {
+    return appIdFromParams;
+  }
+
+  // If no appId parameter, try to parse from path
+  const path = window.location.pathname.toLowerCase();
+  const originalPath = window.location.pathname;
+
+  // Patterns that should NOT be converted (existing endpoints)
+  const excludedPaths = [
+    '/messages', // SignalR hub
+    '/webhook', // Webhook endpoints
+    '/auth', // Auth endpoints
+    '/assets', // Static assets
+    '/fonts', // Font files
+    '/_framework', // Blazor framework files
+    '/favicon.ico', // Favicon
+    '/manifest.json', // PWA manifest
+    '/service-worker.js', // Service worker
+    '/index.html', // Direct index.html access
+  ];
+
+  // File extensions that should be served as static files
+  const staticFileExtensions = [
+    '.js',
+    '.css',
+    '.html',
+    '.json',
+    '.ico',
+    '.png',
+    '.jpg',
+    '.jpeg',
+    '.gif',
+    '.svg',
+    '.woff',
+    '.woff2',
+    '.ttf',
+    '.eot',
+    '.map',
+  ];
+
+  // Skip if path is empty or just "/"
+  if (!path || path === '/') {
+    return null;
+  }
+
+  // Skip if path starts with any excluded pattern
+  if (excludedPaths.some(excluded => path.startsWith(excluded))) {
+    return null;
+  }
+
+  // Skip if path has a static file extension
+  if (staticFileExtensions.some(ext => path.endsWith(ext))) {
+    return null;
+  }
+
+  // Convert path to appId
+  // Remove leading slash and use the rest as appId
+  const appId = originalPath.replace(/^\/+/, '');
+
+  // Only convert if the path looks like an app ID (contains at least one segment and no dots)
+  if (appId && !appId.includes('.')) {
+    return appId;
+  }
+
+  return null;
 }
 
 export function getAppArgs(): string | null {

@@ -18,6 +18,16 @@ public class DefaultSidebarChrome(ChromeSettings settings) : ViewBase
         public Tab ToTab() => new Tab(Title, AppHost).Icon(Icon).Key(Utils.GetShortHash(Id + RefreshToken));
     }
 
+    private string? _initialAppId = settings.DefaultAppId;
+
+    public override void ThisIsAHackButPleaseSetTheInitialAppId(string? appId)
+    {
+        if (!string.IsNullOrWhiteSpace(appId))
+        {
+            _initialAppId = appId;
+        }
+    }
+
     public override object? Build()
     {
         var tabs = UseState(ImmutableArray.Create<TabState>);
@@ -114,9 +124,9 @@ public class DefaultSidebarChrome(ChromeSettings settings) : ViewBase
             {
                 user.Set(await auth.GetUserInfoAsync());
             }
-            if (!string.IsNullOrEmpty(settings.DefaultAppId))
+            if (!string.IsNullOrEmpty(_initialAppId))
             {
-                OpenApp(new NavigateArgs(settings.DefaultAppId));
+                OpenApp(new NavigateArgs(_initialAppId));
             }
         });
 

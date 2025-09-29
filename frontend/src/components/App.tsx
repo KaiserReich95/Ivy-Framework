@@ -16,9 +16,10 @@ export function App() {
   const appArgs = getAppArgs();
   const parentId = getParentId();
   const { widgetTree, eventHandler, disconnected } = useBackend(
-    appId,
+    '',
     appArgs,
-    parentId
+    parentId,
+    appId
   );
   const [removeBranding, setRemoveBranding] = useState(true);
 
