@@ -211,6 +211,14 @@ export const useBackend = (
     const { url, replaceHistory } = message;
 
     if (url.startsWith('/')) {
+      const existingUrl = window.location;
+      const existingPath =
+        existingUrl.pathname + existingUrl.search + existingUrl.hash;
+
+      if (url === existingPath) {
+        return;
+      }
+
       // For path-based redirects, update the pathname
       if (replaceHistory) {
         window.history.replaceState({}, '', url);
