@@ -73,14 +73,14 @@ public class DefaultSidebarChrome(ChromeSettings settings) : ViewBase
             }
         }, [search]);
 
-        void OpenApp(NavigateArgs navigateArgs)
+        void OpenApp(NavigateArgs navigateArgs, bool replaceHistory = false)
         {
             var app = appRepository!.GetAppOrDefault(navigateArgs.AppId);
             if (settings.Navigation == ChromeNavigation.Pages)
             {
                 currentApp.Set(navigateArgs.ToAppHost(args.ConnectionId));
                 // Update browser URL for page navigation
-                client.Redirect(navigateArgs.GetUrl());
+                client.Redirect(navigateArgs.GetUrl(), replaceHistory);
             }
             else
             {
@@ -104,7 +104,7 @@ public class DefaultSidebarChrome(ChromeSettings settings) : ViewBase
                     {
                         selectedIndex.Set(existingTabIndex);
                         // Update browser URL when switching to existing tab
-                        client.Redirect(navigateArgs.GetUrl());
+                        client.Redirect(navigateArgs.GetUrl(), replaceHistory);
                         return;
                     }
                 }
@@ -114,7 +114,7 @@ public class DefaultSidebarChrome(ChromeSettings settings) : ViewBase
                 selectedIndex.Set(newTabs.Length - 1);
 
                 // Update browser URL when new tab is opened
-                client.Redirect(navigateArgs.GetUrl());
+                client.Redirect(navigateArgs.GetUrl(), replaceHistory);
             }
         }
 
@@ -126,7 +126,7 @@ public class DefaultSidebarChrome(ChromeSettings settings) : ViewBase
             }
             if (!string.IsNullOrEmpty(_initialAppId))
             {
-                OpenApp(new NavigateArgs(_initialAppId));
+                OpenApp(new NavigateArgs(_initialAppId), replaceHistory: true);
             }
         });
 

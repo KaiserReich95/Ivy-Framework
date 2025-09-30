@@ -27,6 +27,11 @@ type ErrorMessage = {
   stackTrace?: string;
 };
 
+type RedirectMessage = {
+  url: string;
+  replaceHistory: boolean;
+};
+
 type AuthToken = {
   jwt: string;
   refreshToken?: string;
@@ -201,6 +206,23 @@ export const useBackend = (
     }
   }, []);
 
+  const handleRedirect = useCallback((message: RedirectMessage) => {
+    logger.debug('Processing Redirect request', message);
+    const { url, replaceHistory } = message;
+
+    if (url.startsWith('/')) {
+      // For path-based redirects, update the pathname
+      if (replaceHistory) {
+        window.history.replaceState({}, '', url);
+      } else {
+        window.history.pushState({}, '', url);
+      }
+    } else {
+      // For full URL redirects
+      window.location.href = url;
+    }
+  }, []);
+
   const handleSetTheme = useCallback((theme: string) => {
     logger.debug('Processing SetTheme request', { theme });
     const normalizedTheme = theme.toLowerCase();
@@ -320,16 +342,9 @@ export const useBackend = (
             window.open(url, '_blank');
           });
 
-          connection.on('Redirect', (url: string) => {
-            logger.debug(`[${connection.connectionId}] Redirect`, { url });
-            // Update the URL without reloading the page
-            if (url.startsWith('/')) {
-              // For path-based redirects, update the pathname
-              window.history.pushState({}, '', url);
-            } else {
-              // For full URL redirects
-              window.location.href = url;
-            }
+          connection.on('Redirect', message => {
+            logger.debug(`[${connection.connectionId}] Redirect`, message);
+            handleRedirect(message);
           });
 
           connection.on('ApplyTheme', (css: string) => {
@@ -408,6 +423,7 @@ export const useBackend = (
     handleHotReloadMessage,
     toast,
     handleSetJwt,
+    handleRedirect,
     handleSetTheme,
     handleError,
     appId,

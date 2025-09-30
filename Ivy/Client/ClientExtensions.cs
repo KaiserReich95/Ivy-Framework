@@ -17,6 +17,12 @@ public class ErrorMessage
     public string? StackTrace { get; set; }
 }
 
+public class RedirectMessage
+{
+    public string? Url { get; set; }
+    public bool ReplaceHistory { get; set; }
+}
+
 public static class ClientExtensions
 {
     public static void CopyToClipboard(this IClientProvider client, string content)
@@ -33,9 +39,9 @@ public static class ClientExtensions
         client.Sender.Send("OpenUrl", uri.ToString());
     }
 
-    public static void Redirect(this IClientProvider client, string url)
+    public static void Redirect(this IClientProvider client, string url, bool replaceHistory = false)
     {
-        client.Sender.Send("Redirect", url);
+        client.Sender.Send("Redirect", new RedirectMessage { Url = url, ReplaceHistory = replaceHistory });
     }
 
     public static void SetJwt(this IClientProvider client, AuthToken? authToken)
