@@ -330,6 +330,18 @@ public class AppHub(
         }
     }
 
+    public void Navigate(string appId)
+    {
+        logger.LogInformation($"Navigate: {Context.ConnectionId} [{appId}]");
+        if (!sessionStore.Sessions.TryGetValue(Context.ConnectionId, out var appSession))
+        {
+            logger.LogWarning($"Navigate: {Context.ConnectionId} [{appId}] [AppSession Not Found]");
+            return;
+        }
+
+        Console.WriteLine($"navigate to {appId}");
+    }
+
     private AuthToken? GetAuthToken(HttpContext httpContext)
     {
         var cookies = httpContext.Request.Cookies;

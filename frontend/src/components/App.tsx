@@ -15,7 +15,7 @@ export function App() {
   const appId = getAppId();
   const appArgs = getAppArgs();
   const parentId = getParentId();
-  const { widgetTree, eventHandler, disconnected } = useBackend(
+  const { connection, widgetTree, eventHandler, disconnected } = useBackend(
     '',
     appArgs,
     parentId,
@@ -26,6 +26,17 @@ export function App() {
   useEffect(() => {
     hasLicensedFeature('RemoveBranding').then(setRemoveBranding);
   }, []);
+
+  useEffect(() => {
+    window.addEventListener('popstate', () => {
+      const newAppId = getAppId();
+      if (newAppId !== appId) {
+        connection?.invoke('Navigate', newAppId).catch(err => {
+          console.error('SignalR Error when sending Navigate:', err);
+        });
+      }
+    });
+  }, [connection]);
 
   return (
     <ThemeProvider defaultTheme="light" storageKey="ivy-ui-theme">
