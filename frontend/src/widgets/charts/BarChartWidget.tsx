@@ -14,13 +14,14 @@ import {
   Bar,
   BarChart,
   LabelList,
-  Legend,
 } from 'recharts';
 import {
   ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
 } from '@/components/ui/chart';
 import {
   ColorScheme,
@@ -94,9 +95,9 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({
   const [colorGenerator] = getColorGenerator(colorScheme);
 
   return (
-    <ChartContainer config={chartConfig} style={styles} className="mt-4">
+    <ChartContainer config={chartConfig} style={styles} className="w-full">
       <BarChart
-        margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+        margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
         layout={camelCase(layout) as 'horizontal' | 'vertical'}
         accessibilityLayer
         data={data}
@@ -116,9 +117,12 @@ const BarChartWidget: React.FC<BarChartWidgetProps> = ({
           <YAxis key={`yaxis${index}`} {...generateYAxisProps(props)} />
         ))}
 
-        {legend && <Legend {...generateLegendProps(legend)} />}
-
-        {/* {legend && <ChartLegend {...generateLegendProps(legend)} content={<ChartLegendContent />} />}         */}
+        {legend && (
+          <ChartLegend
+            {...generateLegendProps(legend)}
+            content={<ChartLegendContent splitThreshold={6} />}
+          />
+        )}
 
         {/* eslint-disable-next-line @typescript-eslint/no-unused-vars */}
         {referenceAreas?.map(({ ref, ...props }, index) => (

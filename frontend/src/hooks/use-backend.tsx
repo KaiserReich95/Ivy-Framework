@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import * as signalR from '@microsoft/signalr';
 import { WidgetEventHandlerType, WidgetNode } from '@/types/widgets';
 import { useToast } from '@/hooks/use-toast';
@@ -6,9 +6,9 @@ import { showError } from '@/hooks/use-error-sheet';
 import { getIvyHost, getMachineId } from '@/lib/utils';
 import { logger } from '@/lib/logger';
 import { applyPatch, Operation } from 'fast-json-patch';
-import { setThemeGlobal } from '@/components/ThemeProvider';
 import { cloneDeep } from 'lodash';
 import { ToastAction } from '@/components/ui/toast';
+import { setThemeGlobal } from '@/components/theme-provider';
 import { AuthToken, signInWithFirebase } from './use-auth';
 
 type UpdateMessage = Array<{
@@ -63,14 +63,50 @@ function applyUpdateMessage(
 
   message.forEach(update => {
     let parent = newTree;
+
+    if (!parent) {
+      logger.error('No parent found in applyUpdateMessage', { message });
+      return;
+    }
+
     if (update.indices.length === 0) {
       applyPatch(parent, update.patch);
     } else {
       update.indices.forEach((index, i) => {
         if (i === update.indices.length - 1) {
-          applyPatch(parent.children![index], update.patch);
+          if (!parent.children) {
+            logger.error('No children found in parent', { parent });
+            return;
+          }
+          applyPatch(parent.children[index], update.patch);
         } else {
-          parent = parent.children![index];
+          if (!parent) {
+            logger.error('No parent found in applyUpdateMessage', { message });
+            return;
+          }
+          if (!parent.children) {
+            logger.error('No children found in parent', { parent });
+            return;
+          }
+          if (index >= parent.children.length) {
+            logger.error('Index out of bounds', {
+              index,
+              childrenLength: parent.children.length,
+              parent,
+            });
+            return;
+          }
+          const nextParent = parent.children[index];
+          if (!nextParent) {
+            logger.error('Child at index is null/undefined', {
+              index,
+              childrenLength: parent.children.length,
+              parentType: parent.type,
+              parentId: parent.id,
+            });
+            return;
+          }
+          parent = nextParent;
         }
       });
     }
@@ -92,6 +128,7 @@ export const useBackend = (
   const { toast } = useToast();
   const machineId = getMachineId();
   const connectionId = connection?.connectionId;
+  const currentConnectionRef = useRef<signalR.HubConnection | null>(null);
 
   useEffect(() => {
     if (import.meta.env.DEV && widgetTree) {
@@ -115,7 +152,7 @@ export const useBackend = (
       }
       logger.debug(`[${connectionId}]`, xml);
     }
-  }, [widgetTree]);
+  }, [widgetTree, connectionId]);
 
   const handleRefreshMessage = useCallback((message: RefreshMessage) => {
     setWidgetTree(message.widgets);
@@ -194,17 +231,39 @@ export const useBackend = (
   );
 
   useEffect(() => {
+    // Clean up the previous connection before creating a new one
+    if (currentConnectionRef.current) {
+      currentConnectionRef.current.stop().catch(err => {
+        logger.warn('Error stopping previous SignalR connection:', err);
+      });
+    }
+
     const newConnection = new signalR.HubConnectionBuilder()
       .withUrl(
         `${getIvyHost()}/messages?appId=${appId ?? ''}&appArgs=${appArgs ?? ''}&machineId=${machineId}&parentId=${parentId ?? ''}`
       )
       .withAutomaticReconnect()
       .build();
+
+    currentConnectionRef.current = newConnection;
     setConnection(newConnection);
+
+    return () => {
+      // Clean up on component unmount
+      if (currentConnectionRef.current === newConnection) {
+        newConnection.stop().catch(err => {
+          logger.warn('Error stopping SignalR connection during unmount:', err);
+        });
+        currentConnectionRef.current = null;
+      }
+    };
   }, [appArgs, appId, machineId, parentId]);
 
   useEffect(() => {
-    if (connection) {
+    if (
+      connection &&
+      connection.state === signalR.HubConnectionState.Disconnected
+    ) {
       connection
         .start()
         .then(() => {
@@ -252,6 +311,24 @@ export const useBackend = (
           connection.on('OpenUrl', (url: string) => {
             logger.debug(`[${connection.connectionId}] OpenUrl`, { url });
             window.open(url, '_blank');
+          });
+
+          connection.on('ApplyTheme', (css: string) => {
+            logger.debug(`[${connection.connectionId}] ApplyTheme`);
+
+            // Remove existing custom theme style if any
+            const existingStyle = document.getElementById('ivy-custom-theme');
+            if (existingStyle) {
+              existingStyle.remove();
+            }
+
+            // Create and inject the new style element
+            const styleElement = document.createElement('style');
+            styleElement.id = 'ivy-custom-theme';
+            styleElement.innerHTML = css
+              .replace('<style id="ivy-custom-theme">', '')
+              .replace('</style>', '');
+            document.head.appendChild(styleElement);
           });
 
           connection.on('SignInToFirebase', async request => {
@@ -325,10 +402,21 @@ export const useBackend = (
         connection.off('SetJwt');
         connection.off('SetTheme');
         connection.off('OpenUrl');
+        connection.off('ApplyTheme');
         connection.off('SignInToFirebase');
         connection.off('reconnecting');
         connection.off('reconnected');
         connection.off('close');
+
+        // Stop and dispose the connection when the component unmounts or connection changes
+        if (connection.state !== signalR.HubConnectionState.Disconnected) {
+          connection.stop().catch(err => {
+            logger.warn(
+              'Error stopping SignalR connection during cleanup:',
+              err
+            );
+          });
+        }
       };
     }
   }, [
@@ -340,6 +428,8 @@ export const useBackend = (
     handleSetJwt,
     handleSetTheme,
     handleError,
+    appId,
+    parentId,
   ]);
 
   const eventHandler: WidgetEventHandlerType = useCallback(
@@ -356,7 +446,7 @@ export const useBackend = (
         logger.error('SignalR Error when sending event:', err);
       });
     },
-    [connection]
+    [connection, connectionId]
   );
 
   return {

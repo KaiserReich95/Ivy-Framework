@@ -7,18 +7,34 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
-import { getHeight, getWidth } from '@/lib/styles';
+import {
+  getHeight,
+  getWidth,
+  getBorderRadius,
+  getBorderStyle,
+  getBorderThickness,
+  getColor,
+  BorderRadius,
+  BorderStyle,
+} from '@/lib/styles';
 import { cn } from '@/lib/utils';
-import React from 'react';
+import { useEventHandler } from '@/components/event-handler';
+import React, { useCallback } from 'react';
 import { EmptyWidget } from './primitives/EmptyWidget';
 
 interface CardWidgetProps {
   id: string;
+  events: string[];
   title?: string;
   description?: string;
   icon?: string;
   width?: string;
   height?: string;
+  borderThickness?: string;
+  borderRadius?: BorderRadius;
+  borderStyle?: BorderStyle;
+  borderColor?: string;
+  hoverVariant?: 'None' | 'Pointer' | 'PointerAndTranslate';
   slots?: {
     Content?: React.ReactNode[];
     Footer?: React.ReactNode[];
@@ -26,16 +42,29 @@ interface CardWidgetProps {
 }
 
 export const CardWidget: React.FC<CardWidgetProps> = ({
+  id,
+  events,
   title,
   description,
   icon,
   width,
   height,
+  borderThickness,
+  borderRadius,
+  borderStyle,
+  borderColor,
+  hoverVariant,
   slots,
 }) => {
+  const eventHandler = useEventHandler();
+
   const styles = {
     ...getWidth(width),
     ...getHeight(height),
+    ...(borderStyle && getBorderStyle(borderStyle)),
+    ...(borderThickness && getBorderThickness(borderThickness)),
+    ...(borderRadius && getBorderRadius(borderRadius)),
+    ...(borderColor && getColor(borderColor, 'borderColor', 'background')),
   };
 
   const footerIsEmpty =
@@ -46,10 +75,25 @@ export const CardWidget: React.FC<CardWidgetProps> = ({
 
   const headerIsEmpty = !title && !description && !icon;
 
+  const handleClick = useCallback(() => {
+    if (events.includes('OnClick')) eventHandler('OnClick', id, []);
+  }, [id, eventHandler]);
+
+  const hoverClass =
+    hoverVariant === 'None'
+      ? null
+      : hoverVariant === 'Pointer'
+        ? 'cursor-pointer'
+        : 'cursor-pointer transform hover:-translate-x-[4px] hover:-translate-y-[4px] active:translate-x-[-2px] active:translate-y-[-2px] transition';
+
   return (
-    <Card style={styles} className={cn('flex', 'flex-col', 'overflow-hidden')}>
+    <Card
+      style={styles}
+      className={cn('flex', 'flex-col', 'overflow-hidden', hoverClass)}
+      onClick={handleClick}
+    >
       {!headerIsEmpty ? (
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardHeader className="flex flex-row items-center justify-between gap-4">
           <div className="flex flex-col">
             {title && <CardTitle>{title}</CardTitle>}
             {description && (

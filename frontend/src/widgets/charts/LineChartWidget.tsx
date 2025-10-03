@@ -5,7 +5,6 @@ import {
   Line,
   XAxis,
   YAxis,
-  Legend,
   ReferenceArea,
   ReferenceLine,
   ReferenceDot,
@@ -20,6 +19,8 @@ import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
 } from '@/components/ui/chart';
 import { ColorScheme, ExtendedTooltipProps, getColorGenerator } from './shared';
 import {
@@ -78,9 +79,13 @@ const LineChartWidget: React.FC<LineChartWidgetProps> = ({
   const [colorGenerator] = getColorGenerator(colorScheme);
 
   return (
-    <ChartContainer config={chartConfig} style={styles} className="mt-4">
+    <ChartContainer
+      config={chartConfig}
+      style={styles}
+      className="w-full max-w-[800px]"
+    >
       <LineChart
-        margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+        margin={{ top: 10, right: 10, bottom: 10, left: 10 }}
         accessibilityLayer
         data={data}
       >
@@ -94,7 +99,12 @@ const LineChartWidget: React.FC<LineChartWidgetProps> = ({
           <YAxis key={`yaxis${index}`} {...generateYAxisProps(props)} />
         ))}
 
-        {legend && <Legend {...generateLegendProps(legend)} />}
+        {legend && (
+          <ChartLegend
+            {...generateLegendProps(legend)}
+            content={<ChartLegendContent splitThreshold={6} />}
+          />
+        )}
         {/* eslint-disable-next-line @typescript-eslint/no-unused-vars */}
         {referenceAreas?.map(({ ref, ...props }, index) => (
           <ReferenceArea key={`refArea${index}`} {...props} />

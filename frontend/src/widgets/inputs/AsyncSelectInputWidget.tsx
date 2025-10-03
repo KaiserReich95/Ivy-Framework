@@ -1,4 +1,4 @@
-import { useEventHandler } from '@/components/EventHandlerContext';
+import { useEventHandler } from '@/components/event-handler';
 import { cn } from '@/lib/utils';
 import { ChevronRight } from 'lucide-react';
 import { inputStyles } from '@/lib/styles';
@@ -33,8 +33,8 @@ export const AsyncSelectInputWidget: React.FC<AsyncSelectInputWidgetProps> = ({
         disabled={disabled}
         onClick={handleSelect}
         className={cn(
-          'hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed flex h-9 text-left w-full items-center rounded-md border border-input bg-transparent text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer',
-          invalid && inputStyles.invalid
+          'hover:bg-accent disabled:opacity-50 disabled:cursor-not-allowed flex h-9 text-left w-full items-center rounded-md border border-input bg-background text-base shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring cursor-pointer',
+          invalid && inputStyles.invalidInput
         )}
       >
         {displayValue && (

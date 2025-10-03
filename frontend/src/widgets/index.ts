@@ -1,3 +1,4 @@
+export { ArticleWidget } from './article';
 export { ButtonWidget } from './ButtonWidget';
 export { ProgressWidget } from './ProgressWidget';
 export { TooltipWidget } from './TooltipWidget';
@@ -13,3 +14,4 @@ export {
   ChatStatusWidget,
 } from './ChatWidget';
 export { DropDownMenuWidget } from './DropDownMenuWidget';
+export { PaginationWidget } from './PaginationWidget';

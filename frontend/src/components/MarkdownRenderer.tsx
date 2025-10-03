@@ -6,22 +6,31 @@ import React, {
   useCallback,
   useState,
 } from 'react';
-import ReactMarkdown, { defaultUrlTransform } from 'react-markdown';
+import ErrorBoundary from './ErrorBoundary';
+import ReactMarkdown, { defaultUrlTransform, Components } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkGemoji from 'remark-gemoji';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
+import rehypeSlug from 'rehype-slug';
 import 'katex/dist/katex.min.css';
 import { cn, getIvyHost } from '@/lib/utils';
 import CopyToClipboardButton from './CopyToClipboardButton';
 import { createPrismTheme } from '@/lib/ivy-prism-theme';
 import { textBlockClassMap, textContainerClass } from '@/lib/textBlockClassMap';
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area';
+import {
+  CustomEmoji,
+  remarkCustomEmojiPlugin,
+} from './custom-emojis/remarkCustomEmojiPlugin';
 
 const SyntaxHighlighter = lazy(() =>
   import('react-syntax-highlighter').then(mod => ({ default: mod.Prism }))
 );
+
+// Import MermaidRenderer component
+const MermaidRenderer = lazy(() => import('./MermaidRenderer'));
 
 interface MarkdownRendererProps {
   content: string;
@@ -75,20 +84,43 @@ const CodeBlock = memo(
     className,
     children,
     hasCodeBlocks,
+    hasMermaid,
   }: {
     className?: string;
     children: React.ReactNode;
     inline?: boolean;
     hasCodeBlocks: boolean;
+    hasMermaid: boolean;
   }) => {
     const match = /language-(\w+)/.exec(className || '');
     const content = String(children).replace(/\n$/, '');
     const isTerminal = match && match[1] === 'terminal';
+    const isMermaid = match && match[1] === 'mermaid';
 
     // Create dynamic theme that adapts to current CSS variables
     const dynamicTheme = useMemo(() => createPrismTheme(), []);
 
     if (match && hasCodeBlocks) {
+      // Handle Mermaid diagrams
+      if (isMermaid && hasMermaid) {
+        return (
+          <ErrorBoundary>
+            <Suspense
+              fallback={
+                <div className="rounded-md border bg-background p-4">
+                  <div className="flex items-center justify-center p-8 text-muted-foreground">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
+                    <span className="ml-2 text-sm">Loading Mermaid...</span>
+                  </div>
+                </div>
+              }
+            >
+              <MermaidRenderer content={content} />
+            </Suspense>
+          </ErrorBoundary>
+        );
+      }
+
       if (isTerminal) {
         // Handle terminal blocks with prompt styling
         const lines = content.split('\n').filter(line => line.trim());
@@ -99,8 +131,8 @@ const CodeBlock = memo(
             <div className="absolute top-2 right-2 z-10">
               <CopyToClipboardButton textToCopy={cleanContent} />
             </div>
-            <ScrollArea className="w-full border border-border rounded-md">
-              <pre className="p-4 bg-muted rounded-md font-mono text-body">
+            <ScrollArea className="w-full">
+              <pre className="p-4 bg-muted rounded-md font-mono text-sm">
                 {lines.map((line, index) => (
                   <div key={index} className="flex">
                     <span className="text-muted-foreground select-none pointer-events-none mr-2">
@@ -120,7 +152,9 @@ const CodeBlock = memo(
         <Suspense
           fallback={
             <ScrollArea className="w-full border border-border rounded-md">
-              <pre className="p-4 bg-muted rounded-md">{content}</pre>
+              <pre className="p-4 bg-muted rounded-md font-mono text-sm">
+                {content}
+              </pre>
               <ScrollBar orientation="horizontal" />
             </ScrollArea>
           }
@@ -129,7 +163,7 @@ const CodeBlock = memo(
             <div className="absolute top-2 right-2 z-10">
               <CopyToClipboardButton textToCopy={content} />
             </div>
-            <ScrollArea className="w-full border border-border rounded-md">
+            <ScrollArea className="w-full">
               <SyntaxHighlighter
                 language={match[1]}
                 style={dynamicTheme}
@@ -158,16 +192,17 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
     () => ({
       hasMath: hasContentFeature(content, /(\$|\\\(|\\\[|\\begin\{)/),
       hasCodeBlocks: hasContentFeature(content, /```/),
+      hasMermaid: hasContentFeature(content, /```mermaid/),
     }),
     [content]
   );
 
   const plugins = useMemo(() => {
-    const remarkPlugins = [remarkGfm, remarkGemoji];
+    const remarkPlugins = [remarkGfm, remarkGemoji, remarkCustomEmojiPlugin];
     if (contentFeatures.hasMath)
       remarkPlugins.push(remarkMath as typeof remarkGfm);
 
-    const rehypePlugins = [rehypeRaw];
+    const rehypePlugins = [rehypeRaw, rehypeSlug];
     if (contentFeatures.hasMath)
       rehypePlugins.push(rehypeKatex as unknown as typeof rehypeRaw);
 
@@ -177,7 +212,9 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   const handleLinkClick = useCallback(
     (href: string, event: React.MouseEvent<HTMLAnchorElement>) => {
       const isExternalLink = href?.match(/^(https?:\/\/|mailto:|tel:)/i);
-      if (!isExternalLink && onLinkClick && href) {
+      const isAnchorLink = href?.startsWith('#');
+
+      if (!isExternalLink && !isAnchorLink && onLinkClick && href) {
         event.preventDefault();
         onLinkClick(href);
       }
@@ -185,7 +222,8 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
     [onLinkClick]
   );
 
-  const components = useMemo(
+  // Memoize static components separately (they don't need handleLinkClick)
+  const staticComponents = useMemo(
     () => ({
       h1: memo(({ children }: { children: React.ReactNode }) => (
         <h1 className={textBlockClassMap.h1}>{children}</h1>
@@ -217,42 +255,11 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
       em: memo(({ children }: { children: React.ReactNode }) => (
         <em className={textBlockClassMap.em}>{children}</em>
       )),
-      code: memo((props: React.ComponentProps<'code'>) => (
-        <CodeBlock
-          className={props.className}
-          children={props.children || ''}
-          hasCodeBlocks={contentFeatures.hasCodeBlocks}
-        />
-      )),
 
       // Pre tag (for code blocks)
       pre: memo(({ children }: { children: React.ReactNode }) => (
         <>{children}</>
       )),
-
-      // Links with memoized click handler
-      a: memo(
-        ({
-          children,
-          href,
-          ...props
-        }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => {
-          const isExternalLink = href?.match(/^(https?:\/\/|mailto:|tel:)/i);
-
-          return (
-            <a
-              {...props}
-              className="text-primary underline brightness-90 hover:brightness-100"
-              href={href || '#'}
-              target={isExternalLink ? '_blank' : undefined}
-              rel={isExternalLink ? 'noopener noreferrer' : undefined}
-              onClick={e => href && handleLinkClick(href, e)}
-            >
-              {children}
-            </a>
-          );
-        }
-      ),
 
       // Blockquotes
       blockquote: memo(
@@ -312,8 +319,100 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
           prevProps.src === nextProps.src && prevProps.alt === nextProps.alt
       ),
     }),
-    [contentFeatures.hasCodeBlocks, handleLinkClick]
+    []
   );
+
+  // Memoize code component separately (depends on contentFeatures.hasCodeBlocks and hasMermaid)
+  const codeComponent = useMemo(
+    () => ({
+      code: memo((props: React.ComponentProps<'code'>) => (
+        <CodeBlock
+          className={props.className}
+          children={props.children || ''}
+          hasCodeBlocks={contentFeatures.hasCodeBlocks}
+          hasMermaid={contentFeatures.hasMermaid}
+        />
+      )),
+    }),
+    [contentFeatures.hasCodeBlocks, contentFeatures.hasMermaid]
+  );
+
+  // Memoize link component separately (depends on handleLinkClick)
+  const linkComponent = useMemo(
+    () => ({
+      a: memo(
+        ({
+          children,
+          href,
+          ...props
+        }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => {
+          const isExternalLink = href?.match(/^(https?:\/\/|mailto:|tel:)/i);
+          const isAnchorLink = href?.startsWith('#');
+
+          return (
+            <a
+              {...props}
+              className="text-primary underline brightness-90 hover:brightness-100"
+              href={href || '#'}
+              target={isExternalLink ? '_blank' : undefined}
+              rel={isExternalLink ? 'noopener noreferrer' : undefined}
+              onClick={
+                isAnchorLink
+                  ? e => {
+                      e.preventDefault();
+                      const targetId = href?.substring(1);
+                      if (targetId) {
+                        // Small delay to ensure content is rendered
+                        requestAnimationFrame(() => {
+                          const targetElement =
+                            document.getElementById(targetId);
+                          if (targetElement) {
+                            targetElement.scrollIntoView({
+                              behavior: 'smooth',
+                              block: 'start',
+                            });
+                            // Update URL hash
+                            window.history.replaceState(
+                              null,
+                              '',
+                              `#${targetId}`
+                            );
+                          }
+                        });
+                      }
+                    }
+                  : e => href && handleLinkClick(href, e)
+              }
+            >
+              {children}
+            </a>
+          );
+        }
+      ),
+    }),
+    [handleLinkClick]
+  );
+
+  const components = useMemo(
+    () => ({
+      ...staticComponents,
+      ...codeComponent,
+      ...linkComponent,
+    }),
+    [staticComponents, codeComponent, linkComponent]
+  );
+  // This is useful to declare emoji as a new type of valid markdown component
+  type MarkdownComponents = Components & {
+    emoji?: React.FC<{ name: string }>;
+  };
+
+  // add the components that use memo and the ones that don't in a single variable of the extended type we just created
+  const componentsParams: MarkdownComponents = {
+    ...(components as React.ComponentProps<typeof ReactMarkdown>['components']),
+
+    // ReactMarkdown will execute this when he finds an image node with hName emoji
+    emoji: ({ name }: { name: string }) => <CustomEmoji name={name} />,
+  };
 
   const urlTransform = useCallback((url: string) => {
     if (url.startsWith('app://')) {
@@ -325,9 +424,9 @@ const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({
   return (
     <div className={textContainerClass}>
       <ReactMarkdown
-        components={
-          components as React.ComponentProps<typeof ReactMarkdown>['components']
-        }
+        components={{
+          ...componentsParams,
+        }}
         remarkPlugins={plugins.remarkPlugins}
         rehypePlugins={plugins.rehypePlugins}
         urlTransform={urlTransform}

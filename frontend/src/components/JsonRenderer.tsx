@@ -32,9 +32,9 @@ export const JsonRenderer = ({ data }: JsonRendererProps) => {
     if (value === null)
       return <span className="text-muted-foreground">null</span>;
     if (typeof value === 'boolean')
-      return <span className="text-violet">{value.toString()}</span>;
+      return <span className="text-purple">{value.toString()}</span>;
     if (typeof value === 'number')
-      return <span className="text-blue">{value}</span>;
+      return <span className="text-cyan">{value}</span>;
     if (typeof value === 'string')
       return <span className="text-primary">"{value}"</span>;
 
@@ -70,7 +70,7 @@ export const JsonRenderer = ({ data }: JsonRendererProps) => {
               typeof value === 'object' &&
               Object.entries(value).map(([key, val]) => (
                 <div key={key} className="py-1 ml-2">
-                  <span className="text-blue">{isArray ? '' : `"${key}"`}</span>
+                  <span className="text-cyan">{isArray ? '' : `"${key}"`}</span>
                   {!isArray && (
                     <span className="text-muted-foreground">: </span>
                   )}

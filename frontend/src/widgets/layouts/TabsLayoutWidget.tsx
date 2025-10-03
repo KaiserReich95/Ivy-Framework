@@ -25,7 +25,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { ChevronDown, X } from 'lucide-react';
-import { useEventHandler } from '@/components/EventHandlerContext';
+import { useEventHandler } from '@/components/event-handler';
 import { Badge } from '@/components/ui/badge';
 import { RotateCw } from 'lucide-react';
 import { useDebounce } from '@/hooks/use-debounce';
@@ -188,9 +188,11 @@ export const TabsLayoutWidget = ({
   const [activeTabId, setActiveTabId] = React.useState<string | null>(
     () => tabOrder[selectedIndex] ?? tabOrder[0] ?? null
   );
-  const [loadedTabs, setLoadedTabs] = React.useState<Set<string>>(
-    () => new Set()
-  );
+  const [loadedTabs, setLoadedTabs] = React.useState<Set<string>>(() => {
+    // Only load the initially active tab
+    const initialActiveTab = tabOrder[selectedIndex] ?? tabOrder[0] ?? null;
+    return initialActiveTab ? new Set([initialActiveTab]) : new Set();
+  });
   const activeTabIdRef = React.useRef<string | null>(activeTabId);
   const eventHandler = useEventHandler();
   const containerRef = React.useRef<HTMLDivElement>(null);
@@ -201,6 +203,7 @@ export const TabsLayoutWidget = ({
   const eventHandlerRef = React.useRef(eventHandler);
   const isDraggingRef = React.useRef(false);
   const isUserInitiatedChangeRef = React.useRef(false);
+  const tabMeasurementsRef = React.useRef<Map<string, number>>(new Map());
 
   // Restore animated underline logic for 'Content' variant
   const [activeIndex, setActiveIndex] = React.useState(selectedIndex ?? 0);
@@ -208,6 +211,7 @@ export const TabsLayoutWidget = ({
     left: '0px',
     width: '0px',
   });
+  const [isInitialRender, setIsInitialRender] = React.useState(true);
 
   // Update refs when they change
   React.useEffect(() => {
@@ -231,51 +235,63 @@ export const TabsLayoutWidget = ({
         left: `${offsetLeft}px`,
         width: `${offsetWidth}px`,
       });
-    }
-  }, [activeIndex, tabOrder, variant]);
 
-  React.useEffect(() => {
-    if (variant !== 'Content') return;
-    requestAnimationFrame(() => {
-      const firstElement = tabRefs.current[0];
-      if (firstElement) {
-        const { offsetLeft, offsetWidth } = firstElement;
-        setActiveStyle({
-          left: `${offsetLeft}px`,
-          width: `${offsetWidth}px`,
+      // After first position update, enable animations
+      if (isInitialRender) {
+        requestAnimationFrame(() => {
+          setIsInitialRender(false);
         });
       }
-    });
-  }, [variant]);
+    }
+  }, [activeIndex, tabOrder, variant, isInitialRender]);
 
   // Calculate which tabs fit and which don't - preserving order
   const calculateVisibleTabs = React.useCallback(() => {
     const container = containerRef.current;
-    if (!container) return;
+    const tabsList = tabsListRef.current;
+    if (!container || !tabsList) return;
 
     // Don't recalculate when dropdown is open to prevent infinite loops
     if (dropdownOpen) return;
 
-    const containerWidth = container.clientWidth - 200; // Account for dropdown button space
+    // Get the actual available width for tabs
+    const containerPadding = 48; // pl-12 + pr-12 = 48px total
+    const dropdownButtonWidth = 40; // Space for dropdown button only when needed
+    let availableWidth = container.clientWidth - containerPadding;
+
     const newVisibleTabs: string[] = [];
     const newHiddenTabs: string[] = [];
     let currentWidth = 0;
 
-    // Create temporary elements to measure tab widths
-    const tempContainer = document.createElement('div');
-    tempContainer.style.position = 'absolute';
-    tempContainer.style.visibility = 'hidden';
-    tempContainer.style.whiteSpace = 'nowrap';
-    tempContainer.style.fontSize = '14px'; // Match the tab font size
-    tempContainer.style.fontWeight = '500'; // Match the tab font weight
-    tempContainer.style.padding = '8px 12px'; // Match the tab padding
-    tempContainer.style.border = '1px solid transparent'; // Match the tab border
-    tempContainer.style.marginRight = '2px'; // Match the tab gap
-    document.body.appendChild(tempContainer);
+    // Get actual tab measurements from the DOM
+    const allTabElements = tabsList.querySelectorAll('[role="tab"]');
+    const measurements = new Map<string, number>();
 
-    try {
-      // Process tabs in their original order - first come, first served
-      for (const tabId of tabOrder) {
+    // First pass: measure all visible tabs
+    allTabElements.forEach(element => {
+      const tabId = element.getAttribute('value');
+      if (tabId && element instanceof HTMLElement) {
+        const rect = element.getBoundingClientRect();
+        const styles = window.getComputedStyle(element);
+        const marginLeft = parseFloat(styles.marginLeft) || 0;
+        const marginRight = parseFloat(styles.marginRight) || 0;
+        const totalWidth = Math.ceil(rect.width + marginLeft + marginRight);
+        measurements.set(tabId, totalWidth);
+      }
+    });
+
+    // Store measurements for future use
+    tabMeasurementsRef.current = measurements;
+
+    // Try to fit all tabs first
+    let totalRequiredWidth = 0;
+    const estimatedWidths = new Map<string, number>();
+
+    for (const tabId of tabOrder) {
+      let tabWidth = measurements.get(tabId);
+
+      // If we don't have a measurement (tab not rendered yet), estimate it
+      if (!tabWidth) {
         const tabWidget = tabWidgetsRef.current.find(
           tab => (tab as React.ReactElement<TabWidgetProps>).props.id === tabId
         );
@@ -283,69 +299,85 @@ export const TabsLayoutWidget = ({
 
         const { title, icon, badge } = tabWidget.props as TabWidgetProps;
 
-        // Create a temporary element to measure the tab content
-        const tempTab = document.createElement('div');
-        tempTab.style.display = 'inline-flex';
-        tempTab.style.alignItems = 'center';
-        tempTab.style.gap = '6px';
+        // More accurate estimation based on actual rendering
+        let estimatedWidth = 24; // Base padding (px-3 = 12px * 2)
 
-        // Add icon if present
+        // Icon width
         if (icon) {
-          const iconSpan = document.createElement('span');
-          iconSpan.textContent = '🔧'; // Placeholder for icon
-          iconSpan.style.fontSize = '16px';
-          iconSpan.style.opacity = '0.6';
-          tempTab.appendChild(iconSpan);
+          estimatedWidth += 22; // Icon (16px) + gap (6px)
         }
 
-        // Add title
-        const titleSpan = document.createElement('span');
-        titleSpan.textContent = title;
-        tempTab.appendChild(titleSpan);
+        // Title width - use more accurate character width estimation
+        // Average character width in typical fonts is ~7-9px for normal text
+        const avgCharWidth = 7.5;
+        estimatedWidth += Math.ceil(title.length * avgCharWidth);
 
-        // Add badge if present
+        // Badge width
         if (badge) {
-          const badgeSpan = document.createElement('span');
-          badgeSpan.textContent = badge;
-          badgeSpan.style.marginLeft = '8px';
-          badgeSpan.style.padding = '2px 6px';
-          badgeSpan.style.fontSize = '12px';
-          badgeSpan.style.borderRadius = '4px';
-          badgeSpan.style.backgroundColor = 'var(--accent)';
-          tempTab.appendChild(badgeSpan);
+          const badgeWidth = Math.max(24, 16 + badge.length * avgCharWidth); // min width for single digit
+          estimatedWidth += 8 + badgeWidth; // ml-2 (8px) + badge
         }
 
-        // Add close/refresh buttons space
-        const buttonsSpan = document.createElement('span');
-        buttonsSpan.style.marginLeft = '8px';
-        buttonsSpan.style.width = '24px'; // Approximate space for buttons
-        tempTab.appendChild(buttonsSpan);
-
-        tempContainer.appendChild(tempTab);
-
-        const tabWidth = tempTab.offsetWidth;
-        tempContainer.removeChild(tempTab);
-
-        // Check if this tab fits in the remaining space
-        if (currentWidth + tabWidth <= containerWidth) {
-          newVisibleTabs.push(tabId);
-          currentWidth += tabWidth;
-        } else {
-          // This tab doesn't fit, so it and all remaining tabs go to dropdown
-          newHiddenTabs.push(tabId);
-          // Add all remaining tabs to hidden list
-          const remainingTabIds = tabOrder.slice(tabOrder.indexOf(tabId) + 1);
-          newHiddenTabs.push(...remainingTabIds);
-          break; // Stop processing - order is preserved
+        // Buttons width (refresh + close)
+        const hasButtons =
+          events.includes('OnClose') || events.includes('OnRefresh');
+        if (hasButtons) {
+          const buttonCount =
+            (events.includes('OnClose') ? 1 : 0) +
+            (events.includes('OnRefresh') ? 1 : 0);
+          estimatedWidth += 8 + buttonCount * 24; // ml-2 (8px) + buttons
         }
+
+        // Border and gap between tabs
+        estimatedWidth += 3; // border + gap
+
+        tabWidth = Math.ceil(estimatedWidth);
+        estimatedWidths.set(tabId, tabWidth);
       }
-    } finally {
-      document.body.removeChild(tempContainer);
+
+      totalRequiredWidth += tabWidth;
     }
 
-    setVisibleTabs(newVisibleTabs);
-    setHiddenTabs(newHiddenTabs);
-  }, [tabOrder, dropdownOpen]);
+    // Check if we need the dropdown button
+    const needsDropdown = totalRequiredWidth > availableWidth;
+    if (needsDropdown) {
+      availableWidth -= dropdownButtonWidth;
+    }
+
+    // Second pass: determine which tabs fit
+    for (const tabId of tabOrder) {
+      const tabWidth =
+        measurements.get(tabId) || estimatedWidths.get(tabId) || 0;
+
+      // Check if this tab fits in the remaining space
+      if (currentWidth + tabWidth <= availableWidth) {
+        newVisibleTabs.push(tabId);
+        currentWidth += tabWidth;
+      } else {
+        // This tab doesn't fit, so it and all remaining tabs go to dropdown
+        newHiddenTabs.push(tabId);
+        // Add all remaining tabs to hidden list
+        const remainingIndex = tabOrder.indexOf(tabId) + 1;
+        if (remainingIndex < tabOrder.length) {
+          newHiddenTabs.push(...tabOrder.slice(remainingIndex));
+        }
+        break; // Stop processing - order is preserved
+      }
+    }
+
+    // Only update state if there's an actual change
+    const visibleChanged =
+      newVisibleTabs.length !== visibleTabs.length ||
+      !newVisibleTabs.every((id, index) => id === visibleTabs[index]);
+    const hiddenChanged =
+      newHiddenTabs.length !== hiddenTabs.length ||
+      !newHiddenTabs.every((id, index) => id === hiddenTabs[index]);
+
+    if (visibleChanged || hiddenChanged) {
+      setVisibleTabs(newVisibleTabs);
+      setHiddenTabs(newHiddenTabs);
+    }
+  }, [tabOrder, dropdownOpen, visibleTabs, hiddenTabs, events]);
 
   const debouncedCalculateVisibleTabs = useDebounce(calculateVisibleTabs, 100);
   const debouncedCalculateVisibleTabsRef = React.useRef(
@@ -370,9 +402,96 @@ export const TabsLayoutWidget = ({
     };
   }, []);
 
+  // Use ResizeObserver for more accurate container size tracking
+  React.useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const resizeObserver = new ResizeObserver(() => {
+      debouncedCalculateVisibleTabsRef.current();
+    });
+
+    resizeObserver.observe(container);
+
+    return () => {
+      resizeObserver.disconnect();
+    };
+  }, []);
+
   React.useEffect(() => {
     calculateVisibleTabsRef.current();
   }, [tabOrder]);
+
+  // Trigger recalculation when tabs are rendered or badges/content changes
+  React.useEffect(() => {
+    // Initial calculation after mount
+    const timer = setTimeout(() => {
+      calculateVisibleTabsRef.current();
+    }, 50);
+
+    return () => clearTimeout(timer);
+  }, [tabWidgets]);
+
+  // Force initial calculation to show all tabs that fit
+  React.useEffect(() => {
+    // Only set initial state if we haven't calculated yet
+    if (
+      visibleTabs.length === 0 &&
+      hiddenTabs.length === 0 &&
+      tabOrder.length > 0
+    ) {
+      setVisibleTabs(tabOrder);
+      setHiddenTabs([]);
+    }
+
+    // Then calculate actual visibility after a brief delay
+    const timer = setTimeout(() => {
+      calculateVisibleTabsRef.current();
+    }, 100);
+
+    return () => clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Watch for dynamic content changes in tabs (like badge updates)
+  React.useEffect(() => {
+    if (!tabsListRef.current) return;
+
+    const observer = new MutationObserver(mutations => {
+      // Check if any mutation affects tab content
+      const shouldRecalculate = mutations.some(mutation => {
+        return (
+          mutation.type === 'childList' ||
+          mutation.type === 'characterData' ||
+          (mutation.type === 'attributes' && mutation.attributeName === 'class')
+        );
+      });
+
+      if (shouldRecalculate) {
+        debouncedCalculateVisibleTabsRef.current();
+      }
+    });
+
+    observer.observe(tabsListRef.current, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ['class'],
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
+  // Helper function to efficiently add tab to loaded tabs
+  const addToLoadedTabs = React.useCallback((tabId: string) => {
+    setLoadedTabs(prev => {
+      if (prev.has(tabId)) {
+        return prev; // Return the same Set if tab is already loaded
+      }
+      return new Set([...prev, tabId]);
+    });
+  }, []);
 
   // Keep ref in sync with state
   React.useEffect(() => {
@@ -404,8 +523,8 @@ export const TabsLayoutWidget = ({
         !tabOrder.includes(activeTabId)
       ) {
         if (targetTabId !== activeTabId) {
+          addToLoadedTabs(targetTabId);
           setActiveTabId(targetTabId);
-          setLoadedTabs(prev => new Set(prev).add(targetTabId));
           // Update activeIndex for Content variant animation
           setActiveIndex(selectedIndex);
         }
@@ -416,14 +535,16 @@ export const TabsLayoutWidget = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- activeTabId intentionally excluded to prevent race conditions
   }, [selectedIndex, tabOrder]);
 
-  // Load active tab
+  // Load active tab only when it becomes active
   React.useEffect(() => {
-    if (activeTabId) setLoadedTabs(prev => new Set(prev).add(activeTabId));
-  }, [activeTabId]);
+    if (activeTabId) {
+      addToLoadedTabs(activeTabId);
+    }
+  }, [activeTabId, addToLoadedTabs]);
 
   // Event handlers
   const handleTabSelect = (tabId: string) => {
-    setLoadedTabs(prev => new Set(prev).add(tabId));
+    addToLoadedTabs(tabId);
     setActiveTabId(tabId);
     setDropdownOpen(false);
     // Update activeIndex for Content variant animation
@@ -576,7 +697,7 @@ export const TabsLayoutWidget = ({
                 isUserInitiatedChangeRef.current = true;
                 eventHandler('OnRefresh', id, [tabOrder.indexOf(tabId)]);
               }}
-              className="opacity-60 p-1 rounded-full hover:bg-accent hover:opacity-100 transition-colors cursor-pointer"
+              className="opacity-60 p-1 rounded-full border border-transparent hover:border-border hover:bg-accent hover:opacity-100 transition-colors cursor-pointer"
             >
               <RotateCw className="w-3 h-3" />
             </a>
@@ -589,7 +710,7 @@ export const TabsLayoutWidget = ({
                 isUserInitiatedChangeRef.current = true;
                 eventHandler('OnClose', id, [tabOrder.indexOf(tabId)]);
               }}
-              className="opacity-60 p-1 rounded-full hover:bg-accent hover:opacity-100 transition-colors cursor-pointer"
+              className="opacity-60 p-1 rounded-full border border-transparent hover:border-border hover:bg-accent hover:opacity-100 transition-colors cursor-pointer"
             >
               <X className="w-3 h-3" />
             </a>
@@ -620,11 +741,17 @@ export const TabsLayoutWidget = ({
           />
           {/* Active Indicator */}
           <div
-            className="absolute bottom-[-6px] h-[2px] bg-foreground transition-all duration-300 ease-out"
+            className={cn(
+              'absolute bottom-[-6px] h-[2px] bg-foreground',
+              !isInitialRender && 'transition-all duration-300 ease-out'
+            )}
             style={activeStyle}
           />
           {/* Tabs */}
-          <div className="relative flex space-x-[6px] items-center">
+          <div
+            className="relative flex space-x-[6px] items-center"
+            role="tablist"
+          >
             {orderedTabWidgets.map((tabWidget, index) => {
               if (!React.isValidElement(tabWidget)) return null;
               const props = tabWidget.props as Partial<TabWidgetProps>;
@@ -636,6 +763,9 @@ export const TabsLayoutWidget = ({
                   ref={el => {
                     tabRefs.current[index] = el;
                   }}
+                  role="tab"
+                  aria-selected={index === activeIndex}
+                  tabIndex={0}
                   className={cn(
                     'px-3 py-1.5 cursor-pointer transition-colors duration-300 h-[26px]',
                     index === activeIndex
@@ -645,8 +775,10 @@ export const TabsLayoutWidget = ({
                   onClick={() => {
                     // Mark as user-initiated for Content variant
                     isUserInitiatedChangeRef.current = true;
+                    const tabId = tabOrder[index];
+                    addToLoadedTabs(tabId);
                     setActiveIndex(index);
-                    setActiveTabId(tabOrder[index]);
+                    setActiveTabId(tabId);
                     eventHandler('OnSelect', id, [index]);
                   }}
                 >
@@ -669,6 +801,8 @@ export const TabsLayoutWidget = ({
             return (
               <div
                 key={id}
+                role="tabpanel"
+                aria-hidden={activeTabId !== id}
                 className={cn(
                   'h-full overflow-auto',
                   activeTabId === id ? 'block' : 'hidden',
@@ -722,7 +856,7 @@ export const TabsLayoutWidget = ({
               <TabsList
                 ref={tabsListRef}
                 useRadix={useRadix}
-                className="relative h-auto w-full gap-0.5 mt-3 bg-transparent p-0 flex justify-start flex-nowrap"
+                className="relative h-auto w-full gap-0.5 mt-2.5 bg-transparent p-0 flex justify-start flex-nowrap"
               >
                 {orderedTabWidgets.map(tabWidget => {
                   if (!React.isValidElement(tabWidget)) return null;
@@ -763,19 +897,24 @@ export const TabsLayoutWidget = ({
             </SortableContext>
           </DndContext>
 
-          {/* Only render dropdown if there are hidden tabs */}
-          {hiddenTabs.length > 0 && (
-            <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-0 top-1/2 -translate-y-1/2 h-7 w-7 bg-transparent z-10 mr-3"
-                  aria-label="Show more tabs"
-                >
-                  <ChevronDown className="w-5 h-5" />
-                </Button>
-              </DropdownMenuTrigger>
+          {/* Always render dropdown button but only show when needed */}
+          <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn(
+                  'absolute right-0 top-1/2 -translate-y-1/2 h-7 w-7 bg-transparent z-10 mr-3 transition-opacity',
+                  hiddenTabs.length > 0
+                    ? 'opacity-100'
+                    : 'opacity-0 pointer-events-none'
+                )}
+                aria-label="Show more tabs"
+              >
+                <ChevronDown className="w-5 h-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            {hiddenTabs.length > 0 && (
               <DropdownMenuContent align="end">
                 <DndContext
                   collisionDetection={closestCenter}
@@ -813,8 +952,8 @@ export const TabsLayoutWidget = ({
                   </SortableContext>
                 </DndContext>
               </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+            )}
+          </DropdownMenu>
         </div>
       </div>
 

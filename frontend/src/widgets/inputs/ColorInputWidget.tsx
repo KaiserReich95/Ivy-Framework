@@ -1,10 +1,15 @@
-import { useEventHandler } from '@/components/EventHandlerContext';
+import { useEventHandler } from '@/components/event-handler';
 import { InvalidIcon } from '@/components/InvalidIcon';
 import { inputStyles } from '@/lib/styles';
 import { Input } from '@/components/ui/input';
 import { X } from 'lucide-react';
 import React, { useState, useEffect } from 'react';
-
+import { logger } from '@/lib/logger';
+import {
+  colorInputVariants,
+  colorInputPickerVariants,
+} from '@/components/ui/input/color-input-variants';
+import { Sizes } from '@/types/sizes';
 interface ColorInputWidgetProps {
   id: string;
   value: string | null;
@@ -14,6 +19,7 @@ interface ColorInputWidgetProps {
   nullable?: boolean;
   events?: string[];
   variant?: 'Text' | 'Picker' | 'TextAndPicker';
+  size?: Sizes;
 }
 
 // Hoisted color map for backend Colors enum
@@ -56,6 +62,7 @@ export const ColorInputWidget: React.FC<ColorInputWidgetProps> = ({
   nullable = false,
   events = [],
   variant = 'TextAndPicker',
+  size = Sizes.Medium,
 }) => {
   const eventHandler = useEventHandler();
   const [displayValue, setDisplayValue] = useState(value ?? '');
@@ -107,6 +114,11 @@ export const ColorInputWidget: React.FC<ColorInputWidgetProps> = ({
     return undefined;
   };
 
+  /**
+   * Converts various color formats to hex.
+   * Supported formats: hex (#rrggbb), rgb(), named colors
+   * Unsupported formats: oklch() - returns fallback color (#000000)
+   */
   const convertToHex = (colorValue: string): string => {
     if (!colorValue) return '';
     if (colorValue.startsWith('#')) {
@@ -119,15 +131,11 @@ export const ColorInputWidget: React.FC<ColorInputWidgetProps> = ({
       const b = parseInt(rgbMatch[3]);
       return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
     }
-    const oklchMatch = colorValue.match(
-      /oklch\(([^,]+),\s*([^,]+),\s*([^)]+)\)/
-    );
-    if (oklchMatch) {
-      // TODO: Replace this placeholder with a real OKLCH → HEX conversion.
-      const hash = Math.abs(
-        colorValue.split('').reduce((a, b) => a + b.charCodeAt(0), 0)
-      );
-      return `#${(hash % 0xffffff).toString(16).padStart(6, '0')}`;
+    // More comprehensive OKLCH detection
+    const isOklch = /^oklch\s*\(/i.test(colorValue.trim());
+    if (isOklch) {
+      logger.warn(`OKLCH color format not supported: ${colorValue}`);
+      return '#000000'; // Default fallback
     }
     // Use theme color if available
     const lowerValue = colorValue.toLowerCase();
@@ -161,7 +169,7 @@ export const ColorInputWidget: React.FC<ColorInputWidgetProps> = ({
             onKeyDown={handleInputKeyDown}
             placeholder={placeholder || 'Enter color'}
             disabled={disabled}
-            className={`${invalid ? inputStyles.invalidInput + ' pr-8' : ''}`}
+            className={`${colorInputVariants({ size })} ${invalid ? inputStyles.invalidInput + ' pr-8' : ''}`}
           />
           {(invalid || (nullable && value !== null && !disabled)) && (
             <div
@@ -200,7 +208,7 @@ export const ColorInputWidget: React.FC<ColorInputWidgetProps> = ({
             value={getDisplayColor()}
             onChange={handleColorChange}
             disabled={disabled}
-            className={`w-10 h-10 p-1 rounded-lg border ${
+            className={`${colorInputPickerVariants({ size })} p-1 rounded-lg border ${
               disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
             } ${invalid ? inputStyles.invalidInput : 'border-border'}`}
           />
@@ -218,7 +226,7 @@ export const ColorInputWidget: React.FC<ColorInputWidgetProps> = ({
           value={getDisplayColor()}
           onChange={handleColorChange}
           disabled={disabled}
-          className={`w-10 h-10 p-1 rounded-lg border ${
+          className={`${colorInputPickerVariants({ size })} p-1 rounded-lg border ${
             disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'
           } ${invalid ? inputStyles.invalidInput : 'border-border'}`}
         />
@@ -232,7 +240,7 @@ export const ColorInputWidget: React.FC<ColorInputWidgetProps> = ({
           onKeyDown={handleInputKeyDown}
           placeholder={placeholder || 'Enter color'}
           disabled={disabled}
-          className={`${invalid ? inputStyles.invalidInput + ' pr-8' : ''}`}
+          className={`${colorInputVariants({ size })} ${invalid ? inputStyles.invalidInput + ' pr-8' : ''}`}
         />
         {(invalid || (nullable && value !== null && !disabled)) && (
           <div
