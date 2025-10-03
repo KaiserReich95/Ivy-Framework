@@ -27,16 +27,21 @@ export function App() {
     hasLicensedFeature('RemoveBranding').then(setRemoveBranding);
   }, []);
 
+  const handlePopState = () => {
+    const newAppId = getAppId();
+    if (newAppId !== appId) {
+      connection?.invoke('Navigate', newAppId).catch(err => {
+        console.error('SignalR Error when sending Navigate:', err);
+      });
+    }
+  };
+
   useEffect(() => {
-    window.addEventListener('popstate', () => {
-      const newAppId = getAppId();
-      if (newAppId !== appId) {
-        connection?.invoke('Navigate', newAppId).catch(err => {
-          console.error('SignalR Error when sending Navigate:', err);
-        });
-      }
-    });
-  }, [connection]);
+    window.addEventListener('popstate', handlePopState);
+    return () => {
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [connection, appId]);
 
   return (
     <ThemeProvider defaultTheme="light" storageKey="ivy-ui-theme">
