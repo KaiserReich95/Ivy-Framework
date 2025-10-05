@@ -214,6 +214,8 @@ export const CodeInputWidget: React.FC<CodeInputWidgetProps> = ({
           lineNumbers: true,
           highlightActiveLine: true,
           foldGutter: false,
+          searchKeymap: false,
+          highlightSelectionMatches: false,
         }}
       />
       {invalid && (
