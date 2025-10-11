@@ -20,8 +20,8 @@ public class ClerkOAuthException(string? error, string? errorDescription)
 public class ClerkAuthProvider : IAuthProvider
 {
     private readonly string _secretKey;
-    private readonly string _publishableKey;
     private readonly string? _jwtKey;
+    private readonly string? _fapiInstance;
     private readonly List<AuthOption> _authOptions = new();
     private readonly HttpClient _httpClient;
 
@@ -33,8 +33,18 @@ public class ClerkAuthProvider : IAuthProvider
             .Build();
 
         _secretKey = configuration.GetValue<string>("Clerk:SecretKey") ?? throw new Exception("Clerk:SecretKey is required");
-        _publishableKey = configuration.GetValue<string>("Clerk:PublishableKey") ?? throw new Exception("Clerk:PublishableKey is required");
-        _jwtKey = configuration.GetValue<string>("Clerk:JwtKey");
+        _jwtKey = configuration.GetValue<string>("Clerk:JwtKey") ?? throw new Exception("Clerk:JwtKey is required");
+        var publishableKey = configuration.GetValue<string>("Clerk:PublishableKey") ?? throw new Exception("Clerk:PublishableKey is required");
+
+        try
+        {
+            var pkBytes = Convert.FromBase64String(publishableKey);
+            _fapiInstance = System.Text.Encoding.UTF8.GetString(pkBytes).Split('%')[0];
+        }
+        catch (Exception)
+        {
+            throw new Exception("Clerk:PublishableKey is not a valid base64 string");
+        }
 
         _httpClient = new HttpClient();
         _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {_secretKey}");
@@ -48,7 +58,7 @@ public class ClerkAuthProvider : IAuthProvider
             // This would typically be handled on the client side with Clerk's client libraries
             // For server-side authentication, we would need to validate a session token
             // that was created by the client-side Clerk authentication flow
-            
+
             // For now, return null to indicate this flow is not supported server-side
             await Task.CompletedTask;
             return null;
@@ -65,23 +75,22 @@ public class ClerkAuthProvider : IAuthProvider
         // The server-side SDK doesn't provide direct OAuth URL generation
         // In a real implementation, you would construct the Clerk OAuth URL
         // based on your Clerk configuration and the selected provider
-        
-        var baseUrl = $"https://accounts.clerk.dev/oauth_callback";
+
         var redirectUri = callback.GetUri(includeIdInPath: false);
-        
+
         var provider = option.Id switch
         {
             "google" => "oauth_google",
-            "github" => "oauth_github", 
+            "github" => "oauth_github",
             "twitter" => "oauth_twitter",
             "microsoft" => "oauth_microsoft",
             "apple" => "oauth_apple",
             _ => throw new ArgumentException($"Unknown OAuth provider: {option.Id}")
         };
 
-        // This is a simplified URL structure - in practice, you'd need to use Clerk's actual OAuth flow
-        var authUrl = $"{baseUrl}?provider={provider}&redirect_url={Uri.EscapeDataString(redirectUri.ToString())}&state={callback.Id}";
-        
+        // TODO: fetch the correct sign-in URL. This is the default, but it is configurable in Clerk dashboard
+        var authUrl = $"https://{_fapiInstance}/sign-in?provider={provider}&redirect_url={Uri.EscapeDataString(redirectUri.ToString())}&state={callback.Id}";
+
         return Task.FromResult(new Uri(authUrl));
     }
 
@@ -107,7 +116,7 @@ public class ClerkAuthProvider : IAuthProvider
             // This typically involves client-side Clerk libraries
             // For now, we'll simulate a successful authentication
             await Task.CompletedTask;
-            
+
             // Return a mock token - in practice, this would be the actual Clerk session token
             return new AuthToken("mock_clerk_jwt_token", null, DateTimeOffset.UtcNow.AddHours(1));
         }
@@ -143,7 +152,7 @@ public class ClerkAuthProvider : IAuthProvider
             // Clerk handles token refresh automatically in most cases
             // This would typically involve calling Clerk's session refresh APIs
             await Task.CompletedTask;
-            
+
             // Return the same token or a refreshed one
             return jwt;
         }
@@ -196,7 +205,7 @@ public class ClerkAuthProvider : IAuthProvider
 
             var tokenHandler = new JwtSecurityTokenHandler();
             var jsonToken = tokenHandler.ReadJwtToken(jwt);
-            
+
             var userId = jsonToken.Claims.FirstOrDefault(x => x.Type == "sub")?.Value ?? "";
             var email = jsonToken.Claims.FirstOrDefault(x => x.Type == "email")?.Value ?? "";
             var name = jsonToken.Claims.FirstOrDefault(x => x.Type == "name")?.Value ?? "";
