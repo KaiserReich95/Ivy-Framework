@@ -12,6 +12,7 @@ public class AlertsApp : SampleBase
         var client = UseService<IClientProvider>();
 
         return Layout.Vertical(
+            Text.H1("Alerts"),
             new Button("YesNoCancel", _ => showAlert("Hello, World!", result =>
             {
                 client.Toast(result.ToString());
