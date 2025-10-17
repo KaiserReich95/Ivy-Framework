@@ -11,7 +11,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "preview": "vite preview",
-    "prepare": "cd .. && husky frontend/.husky",
+    "prepare": "husky",
     "test": "vitest",
     "e2e": "playwright test",
     "e2e:docs": "playwright test e2e/docs",
@@ -107,6 +107,7 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
+    "@commitlint/cli": "^20.1.0",
     "@eslint/js": "^9.37.0",
     "@playwright/test": "^1.56.0",
     "@swc/helpers": "^0.5.17",
