@@ -20,6 +20,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button/button';
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import {
   Columns3Cog,
   Bookmark,
   Trash2,
@@ -205,9 +211,16 @@ export const DataTableOptions: React.FC<{
   const savedFiltersDropdown = (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="px-2">
-          <FilterIcon className="text-gray-500" />
-        </Button>
+        <Tooltip delayDuration={1000}>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="sm" className="px-2">
+              <FilterIcon className="text-gray-500" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Saved Filters</p>
+          </TooltipContent>
+        </Tooltip>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-[300px]">
         <DropdownMenuLabel>Filters</DropdownMenuLabel>
@@ -285,9 +298,16 @@ export const DataTableOptions: React.FC<{
   const columnsDropdown = (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="px-2">
-          <Columns3Cog className="text-gray-500" />
-        </Button>
+        <Tooltip delayDuration={1000}>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="sm" className="px-2">
+              <Columns3Cog className="text-gray-500" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Toggle Columns</p>
+          </TooltipContent>
+        </Tooltip>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[200px]">
         <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
@@ -306,7 +326,7 @@ export const DataTableOptions: React.FC<{
   );
 
   return (
-    <>
+    <TooltipProvider>
       <style>{tableStyles.queryEditor.css}</style>
       <div style={tableStyles.tableOptions.container} ref={containerRef}>
         <div
@@ -322,26 +342,40 @@ export const DataTableOptions: React.FC<{
               {isQueryEditorOpen && (
                 <div className="flex w-full gap-2">
                   {queryEditorContent}
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="px-2"
-                    onClick={() => setIsQueryEditorOpen(false)}
-                  >
-                    Close
-                  </Button>
+                  <Tooltip delayDuration={1000}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="px-2"
+                        onClick={() => setIsQueryEditorOpen(false)}
+                      >
+                        Close
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Close Query Editor</p>
+                    </TooltipContent>
+                  </Tooltip>
                 </div>
               )}
               <div className={tableStyles.tableOptions.buttonsWrapperStacked}>
                 {!isQueryEditorOpen && allowFiltering && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="px-2"
-                    onClick={() => setIsQueryEditorOpen(true)}
-                  >
-                    <Search className="text-gray-500" />
-                  </Button>
+                  <Tooltip delayDuration={500}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="px-2"
+                        onClick={() => setIsQueryEditorOpen(true)}
+                      >
+                        <Search className="text-gray-500" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Search & Filter</p>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
                 {allowFiltering && savedFiltersDropdown}
                 {columnsDropdown}
@@ -353,24 +387,38 @@ export const DataTableOptions: React.FC<{
               <div className="flex gap-2">
                 {isQueryEditorOpen && queryEditorContent}
                 {!isQueryEditorOpen && allowFiltering && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="px-2"
-                    onClick={() => setIsQueryEditorOpen(true)}
-                  >
-                    <Search className="text-gray-500" />
-                  </Button>
+                  <Tooltip delayDuration={1000}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="px-2"
+                        onClick={() => setIsQueryEditorOpen(true)}
+                      >
+                        <Search className="text-gray-500" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Search & Filter</p>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
                 {isQueryEditorOpen && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="px-2"
-                    onClick={() => setIsQueryEditorOpen(false)}
-                  >
-                    Close
-                  </Button>
+                  <Tooltip delayDuration={1000}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="px-2"
+                        onClick={() => setIsQueryEditorOpen(false)}
+                      >
+                        Close
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Close Query Editor</p>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
               </div>
               {allowFiltering && savedFiltersDropdown}
@@ -379,6 +427,6 @@ export const DataTableOptions: React.FC<{
           )}
         </div>
       </div>
-    </>
+    </TooltipProvider>
   );
 };
