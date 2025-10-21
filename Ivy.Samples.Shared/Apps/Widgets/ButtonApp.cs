@@ -107,6 +107,15 @@ public class ButtonApp() : SampleBase
                    Icons.Star.ToButton(eventHandler, ButtonVariant.Outline)
                )
 
+               | Text.H2("Buttons with Links")
+               | Text.Small("These buttons act as links and support right-click 'Copy Link'")
+               | (Layout.Horizontal().Gap(8)
+                   | new Button("Visit Ivy Docs", variant: ButtonVariant.Primary).Url("https://github.com/Ivy-Interactive/Ivy-Framework")
+                   | new Button("External Link", variant: ButtonVariant.Secondary).Url("https://github.com/Ivy-Interactive/Ivy-Framework").Icon(Icons.ExternalLink, Align.Right)
+                   | new Button("Link Style", variant: ButtonVariant.Link).Url("https://github.com/Ivy-Interactive/Ivy-Framework")
+                   | new Button("https://github.com/Ivy-Interactive/Ivy-Framework", variant: ButtonVariant.Link)
+               )
+
                | Text.H2("Interactive Demo")
                | Text.Literal(label.Value)
             ;
