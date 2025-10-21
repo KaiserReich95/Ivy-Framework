@@ -12,7 +12,6 @@ import { Filter } from '@/services/grpcTableService';
 import {
   DropdownMenu,
   DropdownMenuContent,
-  DropdownMenuCheckboxItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -20,17 +19,28 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button/button';
 import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import {
   Columns3Cog,
   Bookmark,
   Trash2,
   Filter as FilterIcon,
   Search,
+  GripVertical,
 } from 'lucide-react';
 
 const BREAKPOINT = 600; // Breakpoint for stacking layout
@@ -43,6 +53,54 @@ interface SavedFilter {
   query: string;
   timestamp: number;
 }
+
+// Sortable column item component for drag-and-drop
+interface SortableColumnItemProps {
+  column: { name: string; header?: string; hidden?: boolean };
+  onToggle: (name: string) => void;
+}
+
+const SortableColumnItem: React.FC<SortableColumnItemProps> = ({
+  column,
+  onToggle,
+}) => {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: column.name });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className="flex items-center gap-2 px-2 py-1.5 hover:bg-accent rounded-sm cursor-move"
+      {...attributes}
+    >
+      <div {...listeners} className="cursor-grab active:cursor-grabbing">
+        <GripVertical className="h-4 w-4 text-muted-foreground" />
+      </div>
+      <label className="flex items-center gap-2 flex-1 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={!column.hidden}
+          onChange={() => onToggle(column.name)}
+          className="cursor-pointer"
+        />
+        <span className="select-none">{column.header || column.name}</span>
+      </label>
+    </div>
+  );
+};
 
 export const DataTableOptions: React.FC<{
   hasOptions: { allowFiltering: boolean };
@@ -57,7 +115,13 @@ export const DataTableOptions: React.FC<{
   const [isQueryEditorOpen, setIsQueryEditorOpen] = useState(false);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
-  const { columns, setActiveFilter, toggleColumnVisibility } = useTable();
+  const {
+    columns,
+    setActiveFilter,
+    toggleColumnVisibility,
+    handleColumnReorder,
+    columnOrder,
+  } = useTable();
 
   // Load saved filters from local storage on mount
   useEffect(() => {
@@ -211,16 +275,14 @@ export const DataTableOptions: React.FC<{
   const savedFiltersDropdown = (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Tooltip delayDuration={1000}>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="sm" className="px-2">
-              <FilterIcon className="text-gray-500" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Saved Filters</p>
-          </TooltipContent>
-        </Tooltip>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="px-2"
+          title="Saved Filters"
+        >
+          <FilterIcon className="text-gray-500" />
+        </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-[300px]">
         <DropdownMenuLabel>Filters</DropdownMenuLabel>
@@ -269,9 +331,13 @@ export const DataTableOptions: React.FC<{
     </DropdownMenu>
   );
 
-  const queryEditorContent = isQueryEditorOpen ? (
+  const queryEditorContent = (
     <div
-      className={`flex gap-1 items-center query-editor-wrapper ${shouldStack ? 'w-full' : 'min-w-[400px]'}`}
+      className={`flex gap-1 items-center query-editor-wrapper transition-all duration-300 ease-in-out ${
+        isQueryEditorOpen
+          ? `opacity-100 ${shouldStack ? 'w-full' : 'min-w-[400px]'}`
+          : 'opacity-0 w-0 overflow-hidden'
+      }`}
       onKeyDown={handleKeyDown}
     >
       <div className="flex-1">
@@ -285,7 +351,7 @@ export const DataTableOptions: React.FC<{
         />
       </div>
     </div>
-  ) : null;
+  );
 
   // Handle column visibility toggle
   const handleColumnToggle = useCallback(
@@ -295,38 +361,88 @@ export const DataTableOptions: React.FC<{
     [toggleColumnVisibility]
   );
 
+  // Get ordered columns based on columnOrder
+  const orderedColumns = useMemo(() => {
+    if (columnOrder.length === 0) return columns;
+    return columnOrder.map(index => columns[index]).filter(Boolean);
+  }, [columns, columnOrder]);
+
+  // Setup drag-and-drop sensors
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  // Handle drag end event
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+
+      if (over && active.id !== over.id) {
+        const oldIndex = orderedColumns.findIndex(
+          col => col.name === active.id
+        );
+        const newIndex = orderedColumns.findIndex(col => col.name === over.id);
+
+        if (oldIndex !== -1 && newIndex !== -1) {
+          // Call the reorder handler from context
+          handleColumnReorder(oldIndex, newIndex);
+        }
+      }
+    },
+    [orderedColumns, handleColumnReorder]
+  );
+
   const columnsDropdown = (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Tooltip delayDuration={1000}>
-          <TooltipTrigger asChild>
-            <Button variant="ghost" size="sm" className="px-2">
-              <Columns3Cog className="text-gray-500" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>Toggle Columns</p>
-          </TooltipContent>
-        </Tooltip>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="px-2"
+          title="Toggle Columns & Reorder"
+        >
+          <Columns3Cog className="text-gray-500" />
+        </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-[200px]">
-        <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+      <DropdownMenuContent align="end" className="w-[250px] p-2">
+        <DropdownMenuLabel>Toggle & Reorder Columns</DropdownMenuLabel>
+        <p className="text-xs text-muted-foreground px-2 pb-2">
+          Drag to reorder columns
+        </p>
         <DropdownMenuSeparator />
-        {columns.map(column => (
-          <DropdownMenuCheckboxItem
-            key={column.name}
-            checked={!column.hidden}
-            onCheckedChange={() => handleColumnToggle(column.name)}
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={orderedColumns.map(col => col.name)}
+            strategy={verticalListSortingStrategy}
           >
-            {column.header || column.name}
-          </DropdownMenuCheckboxItem>
-        ))}
+            <div className="py-1">
+              {orderedColumns.map(column => (
+                <SortableColumnItem
+                  key={column.name}
+                  column={column}
+                  onToggle={handleColumnToggle}
+                />
+              ))}
+            </div>
+          </SortableContext>
+        </DndContext>
       </DropdownMenuContent>
     </DropdownMenu>
   );
 
   return (
-    <TooltipProvider>
+    <>
       <style>{tableStyles.queryEditor.css}</style>
       <div style={tableStyles.tableOptions.container} ref={containerRef}>
         <div
@@ -339,43 +455,35 @@ export const DataTableOptions: React.FC<{
           {shouldStack ? (
             // Stacked layout for narrow containers
             <>
-              {isQueryEditorOpen && (
-                <div className="flex w-full gap-2">
-                  {queryEditorContent}
-                  <Tooltip delayDuration={1000}>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="px-2"
-                        onClick={() => setIsQueryEditorOpen(false)}
-                      >
-                        Close
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Close Query Editor</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </div>
-              )}
+              <div
+                className={`flex w-full gap-2 transition-all duration-300 ease-in-out ${
+                  isQueryEditorOpen ? 'mb-2' : ''
+                }`}
+              >
+                {queryEditorContent}
+                {isQueryEditorOpen && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="px-2 transition-opacity duration-300"
+                    onClick={() => setIsQueryEditorOpen(false)}
+                    title="Close Query Editor"
+                  >
+                    Close
+                  </Button>
+                )}
+              </div>
               <div className={tableStyles.tableOptions.buttonsWrapperStacked}>
                 {!isQueryEditorOpen && allowFiltering && (
-                  <Tooltip delayDuration={500}>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="px-2"
-                        onClick={() => setIsQueryEditorOpen(true)}
-                      >
-                        <Search className="text-gray-500" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Search & Filter</p>
-                    </TooltipContent>
-                  </Tooltip>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="px-2 transition-all duration-300 hover:bg-accent"
+                    onClick={() => setIsQueryEditorOpen(true)}
+                    title="Search & Filter"
+                  >
+                    <Search className="text-gray-500" />
+                  </Button>
                 )}
                 {allowFiltering && savedFiltersDropdown}
                 {columnsDropdown}
@@ -384,41 +492,29 @@ export const DataTableOptions: React.FC<{
           ) : (
             // Horizontal layout for wide containers
             <div className="flex w-full items-center justify-end">
-              <div className="flex gap-2">
-                {isQueryEditorOpen && queryEditorContent}
+              <div className="flex gap-2 items-center">
+                {queryEditorContent}
                 {!isQueryEditorOpen && allowFiltering && (
-                  <Tooltip delayDuration={1000}>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="px-2"
-                        onClick={() => setIsQueryEditorOpen(true)}
-                      >
-                        <Search className="text-gray-500" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Search & Filter</p>
-                    </TooltipContent>
-                  </Tooltip>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="px-2 transition-all duration-300"
+                    onClick={() => setIsQueryEditorOpen(true)}
+                    title="Search & Filter"
+                  >
+                    <Search className="text-gray-500" />
+                  </Button>
                 )}
                 {isQueryEditorOpen && (
-                  <Tooltip delayDuration={1000}>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="px-2"
-                        onClick={() => setIsQueryEditorOpen(false)}
-                      >
-                        Close
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Close Query Editor</p>
-                    </TooltipContent>
-                  </Tooltip>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="px-2 transition-opacity duration-300"
+                    onClick={() => setIsQueryEditorOpen(false)}
+                    title="Close Query Editor"
+                  >
+                    Close
+                  </Button>
                 )}
               </div>
               {allowFiltering && savedFiltersDropdown}
@@ -427,6 +523,6 @@ export const DataTableOptions: React.FC<{
           )}
         </div>
       </div>
-    </TooltipProvider>
+    </>
   );
 };

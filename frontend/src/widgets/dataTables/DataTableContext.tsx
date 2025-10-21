@@ -151,8 +151,12 @@ export const TableProvider: React.FC<TableProviderProps> = ({
             ? currentRowCountRef.current
             : batchSize;
 
-        // Get visible columns (not hidden)
-        const visibleColumns = columnsProp.filter(col => !col.hidden);
+        // Get visible columns in the order specified by columnOrder (or default order)
+        const orderedColumns =
+          columnOrder.length > 0
+            ? columnOrder.map(index => columnsProp[index]).filter(Boolean)
+            : columnsProp;
+        const visibleColumns = orderedColumns.filter(col => !col.hidden);
 
         const result = await fetchTableData(
           connection,
@@ -241,8 +245,12 @@ export const TableProvider: React.FC<TableProviderProps> = ({
     setIsLoading(true);
 
     try {
-      // Get visible columns (not hidden)
-      const visibleColumns = columns.filter(col => !col.hidden);
+      // Get visible columns in the order specified by columnOrder
+      const orderedColumns =
+        columnOrder.length > 0
+          ? columnOrder.map(index => columns[index]).filter(Boolean)
+          : columns;
+      const visibleColumns = orderedColumns.filter(col => !col.hidden);
 
       const result = await fetchTableData(
         connection,
@@ -270,7 +278,15 @@ export const TableProvider: React.FC<TableProviderProps> = ({
       setIsLoading(false);
       loadingRef.current = false;
     }
-  }, [connection, data.length, hasMore, activeFilter, activeSort]);
+  }, [
+    connection,
+    data.length,
+    hasMore,
+    activeFilter,
+    activeSort,
+    columns,
+    columnOrder,
+  ]);
 
   // Handle column resize
   const handleColumnResize = useCallback(
@@ -348,6 +364,20 @@ export const TableProvider: React.FC<TableProviderProps> = ({
             newOrder[i] = newVisibleIndices[visiblePosition++];
           }
         }
+
+        // Update columns with new order property values
+        setColumns(prevColumns => {
+          const updatedColumns = [...prevColumns];
+          newOrder.forEach((columnIndex, orderPosition) => {
+            if (updatedColumns[columnIndex]) {
+              updatedColumns[columnIndex] = {
+                ...updatedColumns[columnIndex],
+                order: orderPosition,
+              };
+            }
+          });
+          return updatedColumns;
+        });
 
         // Reset flag after a short delay
         setTimeout(() => {
