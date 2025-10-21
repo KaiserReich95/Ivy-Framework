@@ -262,8 +262,33 @@ export function getCellContent(
 
   const rowData = data[row];
   const column = orderedCols[col];
-  const originalColumnIndex = columns.indexOf(column);
-  const cellValue = rowData.values[originalColumnIndex];
+
+  // Determine the correct index for the cell value
+  // We need to handle two cases:
+  // 1. Backend returns all columns (old behavior) - use original column index
+  // 2. Backend returns only visible columns (when select_columns is used) - use visible column index
+
+  let cellValue: string | number | boolean | null;
+
+  // Check if the data length matches all columns or just visible columns
+  const visibleColumns = columns.filter(c => !c.hidden);
+
+  if (rowData.values.length === columns.length) {
+    // Case 1: Data includes all columns (old behavior)
+    const originalColumnIndex = columns.indexOf(column);
+    cellValue = rowData.values[originalColumnIndex];
+  } else if (rowData.values.length === visibleColumns.length) {
+    // Case 2: Data includes only visible columns (new behavior with select_columns)
+    const dataIndex = visibleColumns.findIndex(c => c.name === column.name);
+    if (dataIndex === -1) {
+      return createEmptyCell();
+    }
+    cellValue = rowData.values[dataIndex];
+  } else {
+    // Fallback: Try to use the column index directly if within bounds
+    cellValue = col < rowData.values.length ? rowData.values[col] : null;
+  }
+
   const columnType = column.type?.toLowerCase() || 'text';
   const align = column.align;
 

@@ -60,6 +60,7 @@ interface TableContextType {
   setActiveFilter: (filter: Filter | null) => void;
   setError: (error: string | null) => void;
   handleColumnReorder: (startIndex: number, endIndex: number) => void;
+  toggleColumnVisibility: (columnName: string) => void;
 }
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -150,12 +151,18 @@ export const TableProvider: React.FC<TableProviderProps> = ({
             ? currentRowCountRef.current
             : batchSize;
 
+        // Get visible columns (not hidden)
+        const visibleColumns = columnsProp.filter(col => !col.hidden);
+
         const result = await fetchTableData(
           connection,
           0,
           rowsToFetch,
           activeFilter,
-          activeSort
+          activeSort,
+          visibleColumns.length > 0
+            ? visibleColumns.map(col => col.name)
+            : undefined
         );
 
         // Merge Arrow columns with columnsProp (columnsProp has all metadata)
@@ -234,12 +241,18 @@ export const TableProvider: React.FC<TableProviderProps> = ({
     setIsLoading(true);
 
     try {
+      // Get visible columns (not hidden)
+      const visibleColumns = columns.filter(col => !col.hidden);
+
       const result = await fetchTableData(
         connection,
         data.length,
         batchSize,
         activeFilter,
-        activeSort
+        activeSort,
+        visibleColumns.length > 0
+          ? visibleColumns.map(col => col.name)
+          : undefined
       );
 
       if (result.rows.length > 0) {
@@ -347,6 +360,24 @@ export const TableProvider: React.FC<TableProviderProps> = ({
     [columns]
   );
 
+  // Toggle column visibility
+  const toggleColumnVisibility = useCallback((columnName: string) => {
+    setColumns(prevColumns => {
+      const updatedColumns = prevColumns.map(col => {
+        if (col.name === columnName) {
+          return { ...col, hidden: !col.hidden };
+        }
+        return col;
+      });
+      return updatedColumns;
+    });
+
+    // Reset data to trigger a new fetch with updated columns
+    setData([]);
+    setVisibleRows(0);
+    currentRowCountRef.current = 0;
+  }, []);
+
   const value: TableContextType = {
     data,
     columns,
@@ -367,6 +398,7 @@ export const TableProvider: React.FC<TableProviderProps> = ({
     setActiveFilter,
     setError,
     handleColumnReorder,
+    toggleColumnVisibility,
   };
 
   return (

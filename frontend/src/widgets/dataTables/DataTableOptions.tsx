@@ -1,8 +1,18 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useTable } from './DataTableContext';
 import { tableStyles } from './styles/style';
 import { QueryEditor, QueryEditorChangeEvent } from 'filter-query-editor';
 import { Filter } from '@/services/grpcTableService';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Button } from '@/components/ui/button/button';
+import { ChevronDown } from 'lucide-react';
 
 export const DataTableOptions: React.FC<{
   hasOptions: { allowFiltering: boolean };
@@ -10,7 +20,7 @@ export const DataTableOptions: React.FC<{
   const [query, setQuery] = useState<string>('');
   const [pendingFilter, setPendingFilter] = useState<Filter | null>(null);
 
-  const { columns, setActiveFilter } = useTable();
+  const { columns, setActiveFilter, toggleColumnVisibility } = useTable();
 
   const { allowFiltering } = hasOptions;
 
@@ -60,28 +70,61 @@ export const DataTableOptions: React.FC<{
   );
 
   const queryEditorContent = (
-    <div className="flex gap-2 flex-col sm:flex-row">
-      <div
-        className="w-full min-w-[300px] query-editor-wrapper"
-        onKeyDown={handleKeyDown}
-      >
-        <QueryEditor
-          value={query}
-          columns={queryEditorColumns}
-          onChange={handleQueryChange}
-          placeholder='e.g., [Name] = "John" AND [Age] > 18'
-          height={40}
-          className="font-mono rounded-lg border shadow-sm [&:focus-within]:ring-1 [&:focus-within]:ring-ring"
-        />
-        <style>{tableStyles.queryEditor.css}</style>
-      </div>
+    <div
+      className="min-w-[400px] query-editor-wrapper"
+      onKeyDown={handleKeyDown}
+    >
+      <QueryEditor
+        value={query}
+        columns={queryEditorColumns}
+        onChange={handleQueryChange}
+        placeholder='e.g., [Name] = "John" AND [Age] > 18'
+        height={40}
+        className="font-mono rounded-lg border shadow-sm [&:focus-within]:ring-1 [&:focus-within]:ring-ring"
+      />
+      <style>{tableStyles.queryEditor.css}</style>
     </div>
+  );
+
+  // Handle column visibility toggle
+  const handleColumnToggle = useCallback(
+    (columnName: string) => {
+      toggleColumnVisibility(columnName);
+    },
+    [toggleColumnVisibility]
+  );
+
+  const columnsDropdown = (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm">
+          <ChevronDown />
+          Columns
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-[200px]">
+        <DropdownMenuLabel>Toggle columns</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {columns.map(column => (
+          <DropdownMenuCheckboxItem
+            key={column.name}
+            checked={!column.hidden}
+            onCheckedChange={() => handleColumnToggle(column.name)}
+          >
+            {column.header || column.name}
+          </DropdownMenuCheckboxItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 
   return (
     <div style={tableStyles.tableOptions.container}>
       <div className={tableStyles.tableOptions.inner}>
-        {allowFiltering && queryEditorContent}
+        <div className="flex items-center justify-between gap-2 w-full">
+          {allowFiltering && queryEditorContent}
+          {columnsDropdown}
+        </div>
       </div>
     </div>
   );

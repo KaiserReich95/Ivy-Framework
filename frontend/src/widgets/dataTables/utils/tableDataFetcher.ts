@@ -14,7 +14,8 @@ export const fetchTableData = async (
   startIndex: number,
   count: number,
   filter?: Filter | null,
-  sort?: SortOrder[] | null
+  sort?: SortOrder[] | null,
+  selectColumns?: string[]
 ): Promise<{ columns: DataColumn[]; rows: DataRow[]; hasMore: boolean }> => {
   const backendUrl = new URL(getIvyHost());
   const serverUrl = `${backendUrl.protocol}//${backendUrl.hostname}:${connection.port}`;
@@ -26,6 +27,7 @@ export const fetchTableData = async (
     sourceId: connection.sourceId,
     ...(filter && { filter }),
     ...(sort && { sort }),
+    ...(selectColumns && { select_columns: selectColumns }),
   };
 
   try {
