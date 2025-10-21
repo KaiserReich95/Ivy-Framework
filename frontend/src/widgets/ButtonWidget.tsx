@@ -101,7 +101,6 @@ export const ButtonWidget: React.FC<ButtonWidgetProps> = ({
         e.preventDefault();
         return;
       }
-      // If URL is provided, let the anchor tag handle navigation
       // Only call eventHandler for non-URL buttons
       if (!url) {
         eventHandler('OnClick', id, []);
@@ -111,6 +110,7 @@ export const ButtonWidget: React.FC<ButtonWidgetProps> = ({
   );
 
   const hasChildren = !!children;
+  const hasUrl = !!(url && !disabled);
 
   const buttonContent = (
     <>
@@ -147,56 +147,12 @@ export const ButtonWidget: React.FC<ButtonWidgetProps> = ({
     </>
   );
 
-  // If URL is provided, render as a link for proper browser behavior
-  if (url && !disabled) {
-    return (
-      <ButtonWithTooltip
-        asChild
-        style={styles}
-        size={buttonSize}
-        variant={
-          (variant === 'Primary' ? 'default' : camelCase(variant)) as
-            | 'default'
-            | 'destructive'
-            | 'outline'
-            | 'secondary'
-            | 'ghost'
-            | 'link'
-            | 'inline'
-        }
-        className={cn(
-          buttonSize !== 'icon' && 'w-min',
-          hasChildren &&
-            'p-2 h-auto items-start justify-start text-left inline-block',
-          (variant === 'Link' || variant === 'Inline') &&
-            'min-w-0 max-w-full overflow-hidden'
-        )}
-        tooltipText={
-          tooltip ||
-          ((variant === 'Link' || variant === 'Inline') && title
-            ? title
-            : undefined)
-        }
-        data-testid={dataTestId}
-      >
-        <a
-          href={getUrl(url)}
-          target="_blank"
-          rel="noopener noreferrer"
-          onClick={handleClick}
-        >
-          {buttonContent}
-        </a>
-      </ButtonWithTooltip>
-    );
-  }
-
-  // Regular button behavior (no URL)
   return (
     <ButtonWithTooltip
+      asChild={hasUrl}
       style={styles}
       size={buttonSize}
-      onClick={handleClick}
+      onClick={hasUrl ? undefined : handleClick}
       variant={
         (variant === 'Primary' ? 'default' : camelCase(variant)) as
           | 'default'
@@ -223,7 +179,18 @@ export const ButtonWidget: React.FC<ButtonWidgetProps> = ({
       }
       data-testid={dataTestId}
     >
-      {buttonContent}
+      {hasUrl ? (
+        <a
+          href={getUrl(url!)}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={handleClick}
+        >
+          {buttonContent}
+        </a>
+      ) : (
+        buttonContent
+      )}
     </ButtonWithTooltip>
   );
 };
