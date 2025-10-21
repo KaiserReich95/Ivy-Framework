@@ -127,17 +127,12 @@ Layout.Vertical().Gap(4)
 Buttons can act as links by providing a URL.
 
 ```csharp demo-tabs
-Layout.Vertical().Gap(4)
-    | (Layout.Horizontal().Gap(4)
-    | new Button("Visit GitHub", variant: ButtonVariant.Primary)
+Layout.Horizontal().Gap(4)
+    | new Button("Ivy Git", variant: ButtonVariant.Secondary)
         .Url("https://github.com/Ivy-Interactive/Ivy-Framework")
-    | new Button("Documentation", variant: ButtonVariant.Secondary)
-        .Url("https://github.com/Ivy-Interactive/Ivy-Framework")
-        .Icon(Icons.ExternalLink, Align.Right))
-    | (Layout.Horizontal().Gap(4)
+        .Icon(Icons.ExternalLink, Align.Right)
     | new Button("Link Variant", variant: ButtonVariant.Link)
         .Url("https://github.com")
-    | new Button("https://github.com/Ivy-Interactive/Ivy-Framework", variant: ButtonVariant.Link))
 ```
 
 <WidgetDocs Type="Ivy.Button" ExtensionTypes="Ivy.ButtonExtensions" SourceUrl="https://github.com/Ivy-Interactive/Ivy-Framework/blob/main/Ivy/Widgets/Button.cs"/>

@@ -113,7 +113,6 @@ public class ButtonApp() : SampleBase
                    | new Button("Visit Ivy Docs", variant: ButtonVariant.Primary).Url("https://github.com/Ivy-Interactive/Ivy-Framework")
                    | new Button("External Link", variant: ButtonVariant.Secondary).Url("https://github.com/Ivy-Interactive/Ivy-Framework").Icon(Icons.ExternalLink, Align.Right)
                    | new Button("Link Style", variant: ButtonVariant.Link).Url("https://github.com/Ivy-Interactive/Ivy-Framework")
-                   | new Button("https://github.com/Ivy-Interactive/Ivy-Framework", variant: ButtonVariant.Link)
                )
 
                | Text.H2("Interactive Demo")

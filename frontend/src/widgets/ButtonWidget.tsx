@@ -64,21 +64,7 @@ export const ButtonWidget: React.FC<ButtonWidgetProps> = ({
 }) => {
   const eventHandler = useEventHandler();
 
-  // Auto-detect URL: if variant is Link or Inline and title looks like a URL, use it as URL
-  const isUrlLike = (str: string) => {
-    return (
-      str.startsWith('http://') ||
-      str.startsWith('https://') ||
-      str.startsWith('www.') ||
-      str.match(/^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}/)
-    );
-  };
-
-  const effectiveUrl =
-    url ||
-    ((variant === 'Link' || variant === 'Inline') && title && isUrlLike(title)
-      ? title
-      : undefined);
+  const effectiveUrl = url;
 
   const styles: React.CSSProperties = {
     ...getWidth(width),
@@ -132,30 +118,22 @@ export const ButtonWidget: React.FC<ButtonWidgetProps> = ({
     <>
       {!hasChildren && (
         <>
-          {iconPosition == 'Left' && (
-            <>
-              {loading && (
-                <Loader2 className="animate-spin" style={iconStyles} />
-              )}
-              {!loading && icon && icon != 'None' && (
-                <Icon style={iconStyles} name={icon} />
-              )}
-            </>
+          {iconPosition == 'Left' && loading && (
+            <Loader2 className="animate-spin" style={iconStyles} />
+          )}
+          {iconPosition == 'Left' && !loading && icon && icon != 'None' && (
+            <Icon style={iconStyles} name={icon} />
           )}
           {variant === 'Link' || variant === 'Inline' ? (
             <span className="truncate">{title}</span>
           ) : (
             title
           )}
-          {iconPosition == 'Right' && (
-            <>
-              {loading && (
-                <Loader2 className="animate-spin" style={iconStyles} />
-              )}
-              {!loading && icon && icon != 'None' && (
-                <Icon style={iconStyles} name={icon} />
-              )}
-            </>
+          {iconPosition == 'Right' && loading && (
+            <Loader2 className="animate-spin" style={iconStyles} />
+          )}
+          {iconPosition == 'Right' && !loading && icon && icon != 'None' && (
+            <Icon style={iconStyles} name={icon} />
           )}
         </>
       )}
@@ -200,7 +178,6 @@ export const ButtonWidget: React.FC<ButtonWidgetProps> = ({
           href={getUrl(effectiveUrl!)}
           target="_blank"
           rel="noopener noreferrer"
-          onClick={handleClick}
         >
           {buttonContent}
         </a>
