@@ -64,6 +64,22 @@ export const ButtonWidget: React.FC<ButtonWidgetProps> = ({
 }) => {
   const eventHandler = useEventHandler();
 
+  // Auto-detect URL: if variant is Link or Inline and title looks like a URL, use it as URL
+  const isUrlLike = (str: string) => {
+    return (
+      str.startsWith('http://') ||
+      str.startsWith('https://') ||
+      str.startsWith('www.') ||
+      str.match(/^[a-zA-Z0-9-]+\.[a-zA-Z]{2,}/)
+    );
+  };
+
+  const effectiveUrl =
+    url ||
+    ((variant === 'Link' || variant === 'Inline') && title && isUrlLike(title)
+      ? title
+      : undefined);
+
   const styles: React.CSSProperties = {
     ...getWidth(width),
     ...getColor(foreground),
@@ -102,15 +118,15 @@ export const ButtonWidget: React.FC<ButtonWidgetProps> = ({
         return;
       }
       // Only call eventHandler for non-URL buttons
-      if (!url) {
+      if (!effectiveUrl) {
         eventHandler('OnClick', id, []);
       }
     },
-    [id, disabled, url, eventHandler]
+    [id, disabled, effectiveUrl, eventHandler]
   );
 
   const hasChildren = !!children;
-  const hasUrl = !!(url && !disabled);
+  const hasUrl = !!(effectiveUrl && !disabled);
 
   const buttonContent = (
     <>
@@ -181,7 +197,7 @@ export const ButtonWidget: React.FC<ButtonWidgetProps> = ({
     >
       {hasUrl ? (
         <a
-          href={getUrl(url!)}
+          href={getUrl(effectiveUrl!)}
           target="_blank"
           rel="noopener noreferrer"
           onClick={handleClick}
