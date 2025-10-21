@@ -22,7 +22,10 @@ export const tableStyles = {
       borderBottomWidth: '1px',
       borderBottomStyle: 'solid',
     },
-    inner: 'flex items-center gap-4 px-3 py-3',
+    inner: 'flex items-center gap-4 px-2 py-2',
+    innerStacked: 'flex flex-col items-stretch gap-2 px-2 py-2',
+    buttonsWrapper: 'flex items-center justify-end gap-2',
+    buttonsWrapperStacked: 'flex flex-wrap items-center justify-end gap-2',
     leftSection: 'flex items-center gap-4',
     rightSection: 'flex items-center gap-2',
     dialog: {
@@ -66,11 +69,19 @@ export const tableStyles = {
   // QueryEditor component
   queryEditor: {
     css: `
+
+      .clear-button {
+        margin: 2.5px !important;
+        padding: 0 !important;
+      }
+      .clear-button:hover {
+        opacity: 0.8 !important;
+      }
       .query-editor-wrapper .cm-editor.cm-focused {
         outline: none !important;
       }
       .query-editor-wrapper .cm-content {
-        padding: 11px 40px 10px 16px;
+        padding: 8px 40px 10px 16px;
         min-height: auto;
       }
 

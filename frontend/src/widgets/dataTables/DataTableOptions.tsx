@@ -19,13 +19,15 @@ import {
   DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button/button';
-import { ChevronDown, Bookmark, Trash2, ListFilterPlus } from 'lucide-react';
+import {
+  Columns3Cog,
+  Bookmark,
+  Trash2,
+  Filter as FilterIcon,
+  Search,
+} from 'lucide-react';
 
-// Define layout constants
-const QUERY_EDITOR_MIN_WIDTH = 400; // Minimum width for query editor
-const COLUMN_BUTTON_WIDTH = 120; // Approximate width of columns button
-const LAYOUT_GAP = 8; // Gap between elements
-const BREAKPOINT = QUERY_EDITOR_MIN_WIDTH + COLUMN_BUTTON_WIDTH + LAYOUT_GAP;
+const BREAKPOINT = 600; // Breakpoint for stacking layout
 
 // Local storage key for saved filters
 const SAVED_FILTERS_STORAGE_KEY = 'dataTableSavedFilters';
@@ -46,6 +48,7 @@ export const DataTableOptions: React.FC<{
   );
   const [savedFilters, setSavedFilters] = useState<SavedFilter[]>([]);
   const [shouldApplyFilter, setShouldApplyFilter] = useState(false);
+  const [isQueryEditorOpen, setIsQueryEditorOpen] = useState(false);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   const { columns, setActiveFilter, toggleColumnVisibility } = useTable();
@@ -96,9 +99,8 @@ export const DataTableOptions: React.FC<{
   }
 
   // Determine if we should stack the layout based on container width
-  // Stack when: filtering is enabled AND container is narrower than breakpoint
-  const shouldStack =
-    allowFiltering && containerWidth > 0 && containerWidth < BREAKPOINT;
+  // Stack when container is narrower than breakpoint
+  const shouldStack = containerWidth > 0 && containerWidth < BREAKPOINT;
 
   const handleQueryChange = (event: QueryEditorChangeEvent) => {
     setQuery(event.text);
@@ -203,8 +205,8 @@ export const DataTableOptions: React.FC<{
   const savedFiltersDropdown = (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm" className="px-2">
-          <ListFilterPlus className="h-4 w-4" />
+        <Button variant="ghost" size="sm" className="px-2">
+          <FilterIcon className="text-gray-500" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-[300px]">
@@ -254,30 +256,23 @@ export const DataTableOptions: React.FC<{
     </DropdownMenu>
   );
 
-  const queryEditorContent = (
+  const queryEditorContent = isQueryEditorOpen ? (
     <div
-      className={`query-editor-wrapper ${shouldStack ? 'w-full' : 'flex-1'}`}
-      style={{
-        minWidth: shouldStack ? '100%' : `${QUERY_EDITOR_MIN_WIDTH}px`,
-      }}
+      className={`flex gap-1 items-center query-editor-wrapper ${shouldStack ? 'w-full' : 'min-w-[400px]'}`}
       onKeyDown={handleKeyDown}
     >
-      <div className="flex gap-1 items-center">
-        <div className={`min-w-[${QUERY_EDITOR_MIN_WIDTH}px]`}>
-          <QueryEditor
-            value={query}
-            columns={queryEditorColumns}
-            onChange={handleQueryChange}
-            placeholder='e.g., [Name] = "John" AND [Age] > 18'
-            height={40}
-            className="font-mono rounded-lg border shadow-sm [&:focus-within]:ring-1 [&:focus-within]:ring-ring"
-          />
-        </div>
-        {savedFiltersDropdown}
+      <div className="flex-1">
+        <QueryEditor
+          value={query}
+          columns={queryEditorColumns}
+          onChange={handleQueryChange}
+          placeholder='e.g., [Name] = "John" AND [Age] > 18'
+          height={34}
+          className="font-mono rounded-lg border shadow-sm [&:focus-within]:ring-1 [&:focus-within]:ring-ring"
+        />
       </div>
-      <style>{tableStyles.queryEditor.css}</style>
     </div>
-  );
+  ) : null;
 
   // Handle column visibility toggle
   const handleColumnToggle = useCallback(
@@ -290,9 +285,8 @@ export const DataTableOptions: React.FC<{
   const columnsDropdown = (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="sm">
-          <ChevronDown />
-          Columns
+        <Button variant="ghost" size="sm" className="px-2">
+          <Columns3Cog className="text-gray-500" />
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-[200px]">
@@ -312,25 +306,79 @@ export const DataTableOptions: React.FC<{
   );
 
   return (
-    <div style={tableStyles.tableOptions.container} ref={containerRef}>
-      <div className={tableStyles.tableOptions.inner}>
-        {allowFiltering ? (
-          <div
-            className={`flex gap-2 w-full ${
-              shouldStack
-                ? 'flex-col items-stretch'
-                : 'flex-row items-center justify-between'
-            }`}
-          >
-            {queryEditorContent}
-            <div className={shouldStack ? 'self-start' : 'flex-shrink-0'}>
+    <>
+      <style>{tableStyles.queryEditor.css}</style>
+      <div style={tableStyles.tableOptions.container} ref={containerRef}>
+        <div
+          className={
+            shouldStack
+              ? tableStyles.tableOptions.innerStacked
+              : tableStyles.tableOptions.inner
+          }
+        >
+          {shouldStack ? (
+            // Stacked layout for narrow containers
+            <>
+              {isQueryEditorOpen && (
+                <div className="flex w-full gap-2">
+                  {queryEditorContent}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="px-2"
+                    onClick={() => setIsQueryEditorOpen(false)}
+                  >
+                    Close
+                  </Button>
+                </div>
+              )}
+              <div className={tableStyles.tableOptions.buttonsWrapperStacked}>
+                {!isQueryEditorOpen && allowFiltering && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="px-2"
+                    onClick={() => setIsQueryEditorOpen(true)}
+                  >
+                    <Search className="text-gray-500" />
+                  </Button>
+                )}
+                {allowFiltering && savedFiltersDropdown}
+                {columnsDropdown}
+              </div>
+            </>
+          ) : (
+            // Horizontal layout for wide containers
+            <div className="flex w-full items-center justify-end">
+              <div className="flex gap-2">
+                {isQueryEditorOpen && queryEditorContent}
+                {!isQueryEditorOpen && allowFiltering && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="px-2"
+                    onClick={() => setIsQueryEditorOpen(true)}
+                  >
+                    <Search className="text-gray-500" />
+                  </Button>
+                )}
+                {isQueryEditorOpen && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="px-2"
+                    onClick={() => setIsQueryEditorOpen(false)}
+                  >
+                    Close
+                  </Button>
+                )}
+              </div>
+              {allowFiltering && savedFiltersDropdown}
               {columnsDropdown}
             </div>
-          </div>
-        ) : (
-          <div className="flex justify-end w-full">{columnsDropdown}</div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 };
