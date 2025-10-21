@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { useTable } from './DataTableContext';
 import { tableStyles } from './styles/style';
 import { QueryEditor, QueryEditorChangeEvent } from 'filter-query-editor';
@@ -14,19 +14,58 @@ import {
 import { Button } from '@/components/ui/button/button';
 import { ChevronDown } from 'lucide-react';
 
+// Define layout constants
+const QUERY_EDITOR_MIN_WIDTH = 400; // Minimum width for query editor
+const COLUMN_BUTTON_WIDTH = 120; // Approximate width of columns button
+const LAYOUT_GAP = 8; // Gap between elements
+const BREAKPOINT = QUERY_EDITOR_MIN_WIDTH + COLUMN_BUTTON_WIDTH + LAYOUT_GAP;
+
 export const DataTableOptions: React.FC<{
   hasOptions: { allowFiltering: boolean };
 }> = ({ hasOptions }) => {
   const [query, setQuery] = useState<string>('');
   const [pendingFilter, setPendingFilter] = useState<Filter | null>(null);
+  const [containerWidth, setContainerWidth] = useState<number>(
+    window.innerWidth
+  );
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
 
   const { columns, setActiveFilter, toggleColumnVisibility } = useTable();
 
   const { allowFiltering } = hasOptions;
 
+  // Callback ref to handle container element
+  const containerRef = useCallback((node: HTMLDivElement | null) => {
+    // Clean up previous observer
+    if (resizeObserverRef.current) {
+      resizeObserverRef.current.disconnect();
+      resizeObserverRef.current = null;
+    }
+
+    if (node) {
+      // Set initial width
+      setContainerWidth(node.offsetWidth);
+
+      // Create new observer
+      resizeObserverRef.current = new ResizeObserver(entries => {
+        for (const entry of entries) {
+          const width = entry.contentRect.width;
+          setContainerWidth(width);
+        }
+      });
+
+      resizeObserverRef.current.observe(node);
+    }
+  }, []);
+
   if (columns.length === 0) {
     return null;
   }
+
+  // Determine if we should stack the layout based on container width
+  // Stack when: filtering is enabled AND container is narrower than breakpoint
+  const shouldStack =
+    allowFiltering && containerWidth > 0 && containerWidth < BREAKPOINT;
 
   const handleQueryChange = (event: QueryEditorChangeEvent) => {
     setQuery(event.text);
@@ -71,7 +110,10 @@ export const DataTableOptions: React.FC<{
 
   const queryEditorContent = (
     <div
-      className="min-w-[400px] query-editor-wrapper"
+      className={`query-editor-wrapper ${shouldStack ? 'w-full' : 'flex-1'}`}
+      style={{
+        minWidth: shouldStack ? '100%' : `${QUERY_EDITOR_MIN_WIDTH}px`,
+      }}
       onKeyDown={handleKeyDown}
     >
       <QueryEditor
@@ -119,12 +161,24 @@ export const DataTableOptions: React.FC<{
   );
 
   return (
-    <div style={tableStyles.tableOptions.container}>
+    <div style={tableStyles.tableOptions.container} ref={containerRef}>
       <div className={tableStyles.tableOptions.inner}>
-        <div className="flex items-center justify-between gap-2 w-full">
-          {allowFiltering && queryEditorContent}
-          {columnsDropdown}
-        </div>
+        {allowFiltering ? (
+          <div
+            className={`flex gap-2 w-full ${
+              shouldStack
+                ? 'flex-col items-stretch'
+                : 'flex-row items-center justify-between'
+            }`}
+          >
+            {queryEditorContent}
+            <div className={shouldStack ? 'self-start' : 'flex-shrink-0'}>
+              {columnsDropdown}
+            </div>
+          </div>
+        ) : (
+          <div className="flex justify-end w-full">{columnsDropdown}</div>
+        )}
       </div>
     </div>
   );
