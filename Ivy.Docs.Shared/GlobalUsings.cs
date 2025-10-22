@@ -1,4 +1,5 @@
 ﻿global using System.Collections.Immutable;
+global using System.ComponentModel;
 global using System.Reactive.Linq;
 global using Ivy.Auth;
 global using Ivy.Apps;
@@ -24,5 +25,6 @@ global using Ivy.Views.Tables;
 global using Ivy.Views.Blades;
 global using Ivy.Views.Dashboards;
 global using Ivy.Docs.Shared.Helpers;
+global using Ivy.Views.DataTables;
 
 namespace Ivy.Docs.Shared;

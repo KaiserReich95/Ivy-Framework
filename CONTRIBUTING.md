@@ -41,9 +41,16 @@ This project and everyone participating in it is governed by our [Code of Conduc
   ```bash
   # For stable releases
   dotnet tool install -g Ivy.Console
-  
+
   # For prerelease versions (recommended for contributors)
   dotnet tool install -g Ivy.Console --prerelease
+  ```
+
+  - **ARM Mac Users**: [Rosetta 2](https://support.apple.com/en-us/HT211861) is required for the Google Protocol Buffers package to work properly:
+
+  ```bash
+  # Install Rosetta 2 if not already installed
+  /usr/sbin/softwareupdate --install-rosetta --agree-to-license
   ```
 
 ### Setup Steps
@@ -58,10 +65,45 @@ This project and everyone participating in it is governed by our [Code of Conduc
 2. **Follow the development setup in the main [README.md](README.md#developer-build)**
 
    The main README contains detailed instructions for:
+
    - Building the frontend
    - Pre-generating documentation files
    - Running the backend (Ivy.Samples or Ivy.Docs)
    - Opening the application in your browser
+
+## Testing
+
+Ivy Framework uses multiple testing approaches to ensure code quality:
+
+### Unit Testing
+
+- **Backend (C#)**: Run `dotnet test` in the root directory
+- **Frontend (TypeScript)**: Run `npm run test` in the `frontend/` directory
+
+### End-to-End Testing
+
+E2E tests are written using Playwright and are located in `frontend/e2e/`. We provide npm scripts for running these tests:
+
+```bash
+# Run all E2E tests
+npm run e2e
+
+# Run only Ivy.Docs E2E tests
+npm run e2e:docs
+
+# Run only Ivy.Samples E2E tests
+npm run e2e:samples
+```
+
+**Important**: Always use the npm scripts (`npm run e2e*`) instead of `npx playwright test` to ensure consistent usage of the locally installed Playwright version and avoid version conflicts.
+
+Additional Playwright options can be passed after `--`:
+
+```bash
+npm run e2e -- --headed  # Run tests in headed mode
+npm run e2e -- --debug   # Run tests in debug mode
+npm run e2e:samples -- --project=chromium  # Run samples tests in Chrome only
+```
 
 ## Contributing Guidelines
 
@@ -126,6 +168,9 @@ When contributing a new widget to Ivy Framework, your submission **must** includ
 - **C# unit tests** in `Ivy.Test/` covering widget functionality
 - **Frontend unit tests** using Vitest in `frontend/src/` with `.test.ts` extension
 - **Frontend E2E tests** using Playwright in `frontend/e2e/`
+  - Run all E2E tests: `npm run e2e`
+  - Run Ivy.Docs tests: `npm run e2e:docs`
+  - Run Ivy.Samples tests: `npm run e2e:samples`
 - **Edge case testing** including null values, empty states, and error conditions
 - **Accessibility testing** ensuring proper keyboard navigation and screen reader support
 
@@ -180,12 +225,14 @@ Before submitting your widget PR, ensure you have:
    ```
 
 3. **Ensure your code follows our standards:**
+
    - Passes all tests
    - Follows code style guidelines
    - Includes appropriate documentation
    - Doesn't introduce new warnings
 
 4. **Update documentation** if your changes affect:
+
    - Public APIs
    - User-facing features
    - Installation or setup processes
@@ -287,9 +334,13 @@ dotnet test Ivy.Test
 cd frontend
 npm run test
 
-# Run frontend E2E tests
+# Run all frontend E2E tests
 cd frontend
-npx playwright test
+npm run e2e
+
+# Run specific E2E test suites
+npm run e2e:docs      # Ivy.Docs tests only
+npm run e2e:samples   # Ivy.Samples tests only
 ```
 
 ### Writing Tests

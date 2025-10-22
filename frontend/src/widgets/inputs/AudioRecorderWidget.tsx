@@ -141,7 +141,7 @@ export const AudioRecorderWidget: React.FC<AudioRecorderWidgetProps> = ({
       onCancel();
       setRecordingStoppedAt(Date.now());
     };
-  }, [recording, chunkInterval, uploadChunk]);
+  }, [recording, chunkInterval, uploadChunk, mimeType]);
 
   const volumePercent = recording ? Math.min(volume / 255, 1) * 100 : 0;
 
@@ -225,11 +225,15 @@ function SecondsCounter(props: {
   const [seconds, setSeconds] = useState(0);
   useEffect(() => {
     if (typeof props.start !== 'number') {
-      setSeconds(0);
+      queueMicrotask(() => setSeconds(0));
       return;
     }
-    if (typeof props.stopped === 'number') {
-      setSeconds(Math.floor((props.stopped - props.start) / 1000));
+    if (typeof props.stopped === 'number' && typeof props.start === 'number') {
+      const stopped = props.stopped;
+      const start = props.start;
+      queueMicrotask(() => {
+        setSeconds(Math.floor((stopped - start) / 1000));
+      });
       return;
     }
     const start = props.start;

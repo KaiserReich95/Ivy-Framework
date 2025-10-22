@@ -5,6 +5,9 @@ import { cn, getIvyHost, camelCase } from '@/lib/utils';
 import { useEventHandler } from '@/components/event-handler';
 import withTooltip from '@/hoc/withTooltip';
 import { Loader2 } from 'lucide-react';
+
+// Create tooltip-wrapped button outside of component
+const ButtonWithTooltip = withTooltip(Button);
 import {
   BorderRadius,
   getBorderRadius,
@@ -35,6 +38,7 @@ interface ButtonWidgetProps {
   width?: string;
   children?: React.ReactNode;
   borderRadius?: BorderRadius;
+  'data-testid'?: string;
 }
 
 const getUrl = (url: string) => {
@@ -59,6 +63,7 @@ export const ButtonWidget: React.FC<ButtonWidgetProps> = ({
   children,
   borderRadius,
   size,
+  'data-testid': dataTestId,
 }) => {
   const eventHandler = useEventHandler();
 
@@ -90,8 +95,6 @@ export const ButtonWidget: React.FC<ButtonWidgetProps> = ({
     width: `${iconSize * 0.25}rem`,
     height: `${iconSize * 0.25}rem`,
   };
-
-  const ButtonWithTooltip = withTooltip(Button);
 
   const handleClick = useCallback(() => {
     if (disabled) return;
@@ -133,6 +136,7 @@ export const ButtonWidget: React.FC<ButtonWidgetProps> = ({
           ? title
           : undefined)
       }
+      data-testid={dataTestId}
     >
       {!hasChildren && (
         <>

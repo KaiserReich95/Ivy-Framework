@@ -2,7 +2,7 @@ using Ivy.Shared;
 
 namespace Ivy.Samples.Shared.Apps.Widgets.Layouts;
 
-[App(icon: Icons.LayoutTemplate, path: ["Widgets", "Layouts"])]
+[App(icon: Icons.LayoutTemplate, path: ["Widgets", "Layouts"], searchHints: ["navigation", "panels", "pages", "switcher", "tabbed", "sections"])]
 public class TabsApp : ViewBase
 {
     public override object? Build()
@@ -31,19 +31,25 @@ public class TabsApp : ViewBase
             tabs.Set(tabs.Value.RemoveAt(@event.Value));
         }
 
-        var tabsLayout = new TabsLayout(OnTabSelect, OnTabClose, null, null, selectedIndex.Value,
-            tabs.Value.ToArray()
-        ).Variant(TabsVariant.Tabs).Width(150);
-
-        var addBtn = new Button("Add Tab").HandleClick(() =>
+        void OnAddButtonClick(Event<TabsLayout, int> @event)
         {
             tabs.Set(tabs.Value.Add(new Tab($"Tab {tabs.Value.Length + 1}", $"Tab {tabs.Value.Length + 1}")));
-        });
+        }
 
-        return new Fragment()
-               | new FloatingPanel(addBtn, Align.BottomLeft)
-               | tabsLayout
-            ;
+        var width = this.UseState(1.0);
 
+        return Layout.Vertical()
+            | Text.H1("Tabs layout")
+            | Text.P("Adjust the width to see how the tabs react on mobile.")
+            | width.ToSliderInput().Min(0f).Max(1f).WithLabel("Width")
+            | Text.H2("Variants")
+            | Text.H3("Tabs variant")
+            | new TabsLayout(OnTabSelect, OnTabClose, null, null, selectedIndex.Value,
+                tabs.Value.ToArray()
+            ).Variant(TabsVariant.Tabs).Width(width.Value).AddButton("+", OnAddButtonClick)
+            | Text.H3("Content variant")
+            | new TabsLayout(OnTabSelect, OnTabClose, null, null, selectedIndex.Value,
+                tabs.Value.ToArray()
+            ).Variant(TabsVariant.Content).Width(width.Value).AddButton("+", OnAddButtonClick);
     }
 }
