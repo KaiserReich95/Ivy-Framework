@@ -54,8 +54,8 @@ public class PathToAppIdMiddleware
             return;
         }
 
-        // Skip if path starts with any excluded pattern
-        if (ExcludedPaths.Any(excluded => path.StartsWith(excluded)))
+        // Skip if path starts with any excluded pattern (must be exact segment match)
+        if (ExcludedPaths.Any(excluded => path == excluded || path.StartsWith(excluded + "/")))
         {
             await _next(context);
             return;
