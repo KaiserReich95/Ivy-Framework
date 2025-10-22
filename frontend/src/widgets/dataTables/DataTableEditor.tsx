@@ -18,7 +18,7 @@ import { getTableTheme } from './styles/theme';
 import { getSelectionProps } from './utils/selectionModes';
 import { getCellContent as getCellContentUtil } from './utils/cellContent';
 import { convertToGridColumns } from './utils/columnHelpers';
-import { iconCellRenderer } from './utils/customRenderers';
+import { iconCellRenderer, labelCellRenderer } from './utils/customRenderers';
 import { useTheme } from '@/components/theme-provider';
 
 interface TableEditorProps {
@@ -157,7 +157,7 @@ export const DataTableEditor: React.FC<TableEditorProps> = ({
         columns={gridColumns}
         rows={visibleRows}
         getCellContent={getCellContent}
-        customRenderers={[iconCellRenderer]}
+        customRenderers={[iconCellRenderer, labelCellRenderer]}
         onColumnResize={allowColumnResizing ? handleColumnResize : undefined}
         onVisibleRegionChanged={handleVisibleRegionChanged}
         onHeaderClicked={allowSorting ? handleHeaderMenuClick : undefined}

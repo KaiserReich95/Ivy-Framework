@@ -29,6 +29,8 @@ public static class QueryHelpers
             Decimal128Type => new Decimal128Array.Builder((Decimal128Type)arrowType).Build(),
             BinaryType => new BinaryArray.Builder().Build(),
             StringType => new StringArray.Builder().Build(),
+            ListType listType when listType.ValueDataType == StringType.Default =>
+                new ListArray.Builder(StringType.Default).Build(),
             _ => new StringArray.Builder().Build()
         };
     }
@@ -36,6 +38,12 @@ public static class QueryHelpers
     public static IArrowType GetArrowType(SystemType type)
     {
         var underlyingType = Nullable.GetUnderlyingType(type) ?? type;
+
+        // Check for string array type specifically for Labels column
+        if (underlyingType == typeof(string[]))
+        {
+            return new ListType(StringType.Default);
+        }
 
         return underlyingType switch
         {
@@ -67,6 +75,12 @@ public static class QueryHelpers
         var values = data.Select(property.GetValue).ToList();
         var type = property.PropertyType;
         var underlyingType = Nullable.GetUnderlyingType(type) ?? type;
+
+        // Check for string array type specifically for Labels column
+        if (underlyingType == typeof(string[]))
+        {
+            return CreateStringListArray(values);
+        }
 
         return underlyingType switch
         {
@@ -393,5 +407,28 @@ public static class QueryHelpers
                 builder.AppendNull();
         }
         return builder.Build();
+    }
+
+    public static IArrowArray CreateStringListArray(List<object?> values)
+    {
+        var listBuilder = new ListArray.Builder(StringType.Default);
+        var valueBuilder = listBuilder.ValueBuilder as StringArray.Builder;
+
+        foreach (var value in values)
+        {
+            if (value is string[] stringArrayValue)
+            {
+                listBuilder.Append();
+                foreach (var str in stringArrayValue)
+                {
+                    valueBuilder?.Append(str);
+                }
+            }
+            else
+            {
+                listBuilder.AppendNull();
+            }
+        }
+        return listBuilder.Build();
     }
 }

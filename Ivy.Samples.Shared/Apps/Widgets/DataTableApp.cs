@@ -13,6 +13,7 @@ public record UserWithIcon(
     Icons Status,
     bool Priority,
     Icons Activity,
+    string Label,  // Label column - single label with color
     string InternalId  // Hidden column
 );
 
@@ -22,39 +23,51 @@ public class DataTableApp : SampleBase
     protected override object? BuildSample()
     {
         // Create sample data with diverse icon columns and datetime fields
-        var usersWithIcons = SampleData.GetUsers(1000).Select(u => new UserWithIcon(
-            u.Name,
-            u.Email,
-            u.Age,
-            u.CreatedAt,
-            // LastLogin - random time in the last 30 days
-            u.CreatedAt.AddDays(new Random(u.Name.GetHashCode()).Next(0, 30)),
-            // Varied status icons based on age ranges
-            u.Age < 25 ? Icons.Rocket :
-            u.Age < 35 ? Icons.Star :
-            u.Age < 45 ? Icons.ThumbsUp :
-            u.Age < 55 ? Icons.CircleCheck :
-            u.Age < 60 ? Icons.Clock :
-            Icons.TriangleAlert,
+        var availableLabels = new[] { "VIP", "Premium", "Trial", "Active", "New", "Beta", "Pro", "Enterprise", "Support", "Featured" };
 
-            // Priority as boolean (checkbox)
-            u.Age % 2 == 0,
+        var usersWithIcons = SampleData.GetUsers(1000).Select(u =>
+        {
+            // Pick one random label per user
+            var labelIndex = new Random(u.Name.GetHashCode()).Next(availableLabels.Length);
+            var userLabel = availableLabels[labelIndex];
 
-            // Activity type icons
-            u.IsActive ? (
-                u.Age % 4 == 0 ? Icons.Coffee :
-                u.Age % 4 == 1 ? Icons.Heart :
-                u.Age % 4 == 2 ? Icons.Sparkles :
-                Icons.Award
-            ) : (
-                u.Age % 3 == 0 ? Icons.Moon :
-                u.Age % 3 == 1 ? Icons.CloudOff :
-                Icons.Ban
-            ),
+            return new UserWithIcon(
+                u.Name,
+                u.Email,
+                u.Age,
+                u.CreatedAt,
+                // LastLogin - random time in the last 30 days
+                u.CreatedAt.AddDays(new Random(u.Name.GetHashCode()).Next(0, 30)),
+                // Varied status icons based on age ranges
+                u.Age < 25 ? Icons.Rocket :
+                u.Age < 35 ? Icons.Star :
+                u.Age < 45 ? Icons.ThumbsUp :
+                u.Age < 55 ? Icons.CircleCheck :
+                u.Age < 60 ? Icons.Clock :
+                Icons.TriangleAlert,
 
-            // Internal ID - this will be hidden
-            $"USR-{u.Name.GetHashCode():X8}"
-        )).AsQueryable();
+                // Priority as boolean (checkbox)
+                u.Age % 2 == 0,
+
+                // Activity type icons
+                u.IsActive ? (
+                    u.Age % 4 == 0 ? Icons.Coffee :
+                    u.Age % 4 == 1 ? Icons.Heart :
+                    u.Age % 4 == 2 ? Icons.Sparkles :
+                    Icons.Award
+                ) : (
+                    u.Age % 3 == 0 ? Icons.Moon :
+                    u.Age % 3 == 1 ? Icons.CloudOff :
+                    Icons.Ban
+                ),
+
+                // Label - single tag
+                userLabel,
+
+                // Internal ID - this will be hidden
+                $"USR-{u.Name.GetHashCode():X8}"
+            );
+        }).AsQueryable();
 
         return usersWithIcons.ToDataTable()
             .Header(u => u.Name, "Name")
@@ -65,6 +78,7 @@ public class DataTableApp : SampleBase
             .Header(u => u.Status, "Status")
             .Header(u => u.Priority, "Priority")
             .Header(u => u.Activity, "Activity")
+            .Header(u => u.Label, "Label")
             .Header(u => u.InternalId, "Internal ID")
             // Set custom column widths
             .Width(u => u.Name, Size.Px(150))
@@ -75,6 +89,7 @@ public class DataTableApp : SampleBase
             .Width(u => u.Status, Size.Px(80))
             .Width(u => u.Priority, Size.Px(80))
             .Width(u => u.Activity, Size.Px(80))
+            .Width(u => u.Label, Size.Px(120))
             .Width(u => u.InternalId, Size.Px(150))
             // Set all columns to left alignment
             .Align(u => u.Name, Align.Left)
@@ -85,6 +100,7 @@ public class DataTableApp : SampleBase
             .Align(u => u.Status, Align.Left)
             .Align(u => u.Priority, Align.Left)
             .Align(u => u.Activity, Align.Left)
+            .Align(u => u.Label, Align.Left)
             .Align(u => u.InternalId, Align.Left)
             // Email is not sortable
             .Sortable(u => u.Email, false)
@@ -99,6 +115,7 @@ public class DataTableApp : SampleBase
             .Icon(u => u.Status, Icons.Activity)
             .Icon(u => u.Priority, Icons.Flag)
             .Icon(u => u.Activity, Icons.Zap)
+            .Icon(u => u.Label, Icons.Tag)
             // Groups
             .Group(u => u.Name, "Basic Info")
             .Group(u => u.Email, "Basic Info")
@@ -108,6 +125,9 @@ public class DataTableApp : SampleBase
             .Group(u => u.Status, "Metrics")
             .Group(u => u.Priority, "Metrics")
             .Group(u => u.Activity, "Metrics")
+            .Group(u => u.Label, "Metadata")
+            // Set Label column to use Labels type for colored rendering
+            .DataTypeHint(u => u.Label, ColType.Labels)
             // Config
             .Config(config => config.AllowLlmFiltering = true);
     }

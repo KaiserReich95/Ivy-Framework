@@ -219,6 +219,29 @@ export function createTextCell(
 }
 
 /**
+ * Creates a custom label cell for displaying a single colored label
+ */
+export function createLabelCell(cellValue: unknown, align?: Align): GridCell {
+  const labelText = cellValue ? String(cellValue).trim() : '';
+
+  if (!labelText) {
+    return createNullCell(false);
+  }
+
+  return {
+    kind: GridCellKind.Custom,
+    allowOverlay: false,
+    readonly: true,
+    copyData: labelText,
+    data: {
+      kind: 'label-cell',
+      label: labelText,
+      align: align ? getContentAlign(align) : undefined,
+    },
+  };
+}
+
+/**
  * Gets the ordered columns based on columnOrder array
  */
 export function getOrderedColumns(
@@ -275,6 +298,11 @@ export function getCellContent(
   // Handle explicit icon type from backend metadata
   if (column.type === 'Icon' && typeof cellValue === 'string') {
     return createIconCell(cellValue, align);
+  }
+
+  // Handle Labels type for colorful label
+  if (column.type === 'Labels') {
+    return createLabelCell(cellValue, align);
   }
 
   // Handle Date and DateTime types

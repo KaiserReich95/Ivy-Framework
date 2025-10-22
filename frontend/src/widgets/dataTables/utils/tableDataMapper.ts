@@ -84,7 +84,14 @@ export function convertArrowTableToData(
       const column = table.getChildAt(j);
       if (column) {
         const value = column.get(i);
-        values.push(value);
+        // Check if this is a list/array type
+        if (Array.isArray(value)) {
+          // For single label support, take the first item if it's an array
+          // This handles any legacy array data
+          values.push(value.length > 0 ? value[0] : null);
+        } else {
+          values.push(value);
+        }
       }
     }
     rows.push({ values });
