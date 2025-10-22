@@ -55,8 +55,12 @@ export function getAppId(): string | null {
     return null;
   }
 
-  // Skip if path starts with any excluded pattern
-  if (excludedPaths.some(excluded => path.startsWith(excluded))) {
+  // Skip if path starts with any excluded pattern (must be exact segment match)
+  if (
+    excludedPaths.some(
+      excluded => path === excluded || path.startsWith(excluded + '/')
+    )
+  ) {
     return null;
   }
 
