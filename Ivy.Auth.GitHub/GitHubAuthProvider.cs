@@ -8,6 +8,7 @@ using Ivy.Shared;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Http;
 
 namespace Ivy.Auth.GitHub;
 
@@ -26,13 +27,7 @@ public class GitHubOAuthException(string? error, string? errorDescription)
 /// </summary>
 public class GitHubAuthProvider : IAuthProvider
 {
-    // Note: Static HttpClient follows the pattern used by other auth providers in this codebase.
-    // For multi-tenant scenarios, consider using IHttpClientFactory instead.
-    private static readonly HttpClient _httpClient = new()
-    {
-        DefaultRequestHeaders = { { "User-Agent", "Ivy-Framework" } }
-    };
-
+    private readonly HttpClient _httpClient;
     private readonly string _clientId;
     private readonly string _clientSecret;
     private readonly string _redirectUri;
@@ -41,8 +36,10 @@ public class GitHubAuthProvider : IAuthProvider
     /// <summary>
     /// Initializes a new instance of the GitHubAuthProvider with configuration from environment variables and user secrets.
     /// </summary>
-    public GitHubAuthProvider()
+    public GitHubAuthProvider(IHttpClientFactory httpClientFactory)
     {
+        _httpClient = httpClientFactory.CreateClient("GitHubAuth");
+
         var configuration = new ConfigurationBuilder()
             .AddEnvironmentVariables()
             .AddUserSecrets(Assembly.GetEntryAssembly()!)
