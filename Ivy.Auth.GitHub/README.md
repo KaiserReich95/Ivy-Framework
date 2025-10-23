@@ -52,7 +52,7 @@ builder.Services.AddHttpClient("GitHubAuth", client =>
 using Ivy.Auth.GitHub;
 
 // Create and configure the GitHub auth provider
-var authProvider = new GitHubAuthProvider(httpClientFactory)
+var authProvider = new GitHubAuthProvider(httpClientFactory, configuration)
     .UseGitHub();
 
 // Use with Ivy server

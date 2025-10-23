@@ -1,5 +1,4 @@
 using System.IdentityModel.Tokens.Jwt;
-using System.Reflection;
 using System.Security.Claims;
 using System.Text;
 using System.Text.Json;
@@ -30,14 +29,9 @@ public class GitHubAuthProvider : IAuthProvider
     private readonly List<AuthOption> _authOptions = new();
 
     /// <summary>Initialize GitHub auth provider</summary>
-    public GitHubAuthProvider(IHttpClientFactory httpClientFactory)
+    public GitHubAuthProvider(IHttpClientFactory httpClientFactory, IConfiguration configuration)
     {
         _httpClient = httpClientFactory.CreateClient("GitHubAuth");
-
-        var configuration = new ConfigurationBuilder()
-            .AddEnvironmentVariables()
-            .AddUserSecrets(Assembly.GetEntryAssembly()!)
-            .Build();
 
         _clientId = configuration.GetValue<string>("GitHub:ClientId") ?? throw new InvalidOperationException(
             "Missing required configuration: 'GitHub:ClientId'. Please set this value in your environment variables or user secrets. See the README setup steps for instructions.");
@@ -104,9 +98,13 @@ public class GitHubAuthProvider : IAuthProvider
 
             return new AuthToken(tokenResponse.AccessToken);
         }
+        catch (HttpRequestException ex)
+        {
+            throw new HttpRequestException($"GitHub OAuth token exchange failed: {ex.Message}", ex);
+        }
         catch (Exception ex)
         {
-            throw new Exception($"Failed to exchange authorization code for access token: {ex.Message}", ex);
+            throw new InvalidOperationException($"Unexpected error during GitHub OAuth token exchange: {ex.Message}", ex);
         }
     }
 
@@ -188,6 +186,7 @@ public class GitHubAuthProvider : IAuthProvider
                     if (emailObj.TryGetProperty("primary", out var primaryProp) && primaryProp.GetBoolean())
                     {
                         primaryEmail = emailObj.GetProperty("email").GetString();
+                        break;
                     }
                     else if (firstVerifiedEmail == null && emailObj.TryGetProperty("verified", out var verifiedProp) && verifiedProp.GetBoolean())
                     {
@@ -202,7 +201,7 @@ public class GitHubAuthProvider : IAuthProvider
 
             return new UserInfo(userId, email, name, avatarUrl);
         }
-        catch
+        catch (JsonException)
         {
             return null;
         }
@@ -256,35 +255,12 @@ public class GitHubAuthProvider : IAuthProvider
 
         var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
-        try
-        {
-            using var jsonDoc = JsonDocument.Parse(responseContent);
-            var root = jsonDoc.RootElement;
+        using var jsonDoc = JsonDocument.Parse(responseContent);
+        var root = jsonDoc.RootElement;
 
-            if (root.TryGetProperty("access_token", out var accessTokenProp))
-            {
-                return new GitHubTokenResponse(accessTokenProp.GetString()!);
-            }
-        }
-        catch (JsonException)
+        if (root.TryGetProperty("access_token", out var accessTokenProp))
         {
-        }
-        var parameters = new Dictionary<string, string>();
-        foreach (var pair in responseContent.Split('&'))
-        {
-            var parts = pair.Split('=');
-            if (parts.Length == 2)
-            {
-                if (!parameters.ContainsKey(parts[0]))
-                {
-                    parameters[parts[0]] = Uri.UnescapeDataString(parts[1]);
-                }
-            }
-        }
-
-        if (parameters.TryGetValue("access_token", out var accessToken))
-        {
-            return new GitHubTokenResponse(accessToken);
+            return new GitHubTokenResponse(accessTokenProp.GetString()!);
         }
 
         return null;
