@@ -154,6 +154,8 @@ public class GitHubAuthProvider : IAuthProvider
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/user");
             request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            request.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
+            request.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
 
             var response = await _httpClient.SendAsync(request, cancellationToken);
             return response.IsSuccessStatusCode;
@@ -173,6 +175,8 @@ public class GitHubAuthProvider : IAuthProvider
         {
             using var userRequest = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/user");
             userRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            userRequest.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
+            userRequest.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
 
             var userResponse = await _httpClient.SendAsync(userRequest, cancellationToken);
             if (!userResponse.IsSuccessStatusCode)
@@ -191,6 +195,8 @@ public class GitHubAuthProvider : IAuthProvider
 
             using var emailRequest = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/user/emails");
             emailRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            emailRequest.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
+            emailRequest.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
 
             var emailResponse = await _httpClient.SendAsync(emailRequest, cancellationToken);
             string? email = null;
@@ -268,6 +274,7 @@ public class GitHubAuthProvider : IAuthProvider
         using var request = new HttpRequestMessage(HttpMethod.Post, "https://github.com/login/oauth/access_token");
         request.Content = requestBody;
         request.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
+        request.Headers.Add("X-GitHub-Api-Version", "2022-11-28");
 
         var response = await _httpClient.SendAsync(request, cancellationToken);
 
