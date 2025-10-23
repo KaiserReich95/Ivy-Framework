@@ -46,9 +46,12 @@ public class GitHubAuthProvider : IAuthProvider
             .AddUserSecrets(Assembly.GetEntryAssembly()!)
             .Build();
 
-        _clientId = configuration.GetValue<string>("GitHub:ClientId") ?? throw new Exception("GitHub:ClientId is required");
-        _clientSecret = configuration.GetValue<string>("GitHub:ClientSecret") ?? throw new Exception("GitHub:ClientSecret is required");
-        _redirectUri = configuration.GetValue<string>("GitHub:RedirectUri") ?? throw new Exception("GitHub:RedirectUri is required");
+        _clientId = configuration.GetValue<string>("GitHub:ClientId") ?? throw new ArgumentException(
+            "Missing required configuration: 'GitHub:ClientId'. Please set this value in your environment variables or user secrets. See the README setup steps for instructions.");
+        _clientSecret = configuration.GetValue<string>("GitHub:ClientSecret") ?? throw new ArgumentException(
+            "Missing required configuration: 'GitHub:ClientSecret'. Please set this value in your environment variables or user secrets. See the README setup steps for instructions.");
+        _redirectUri = configuration.GetValue<string>("GitHub:RedirectUri") ?? throw new ArgumentException(
+            "Missing required configuration: 'GitHub:RedirectUri'. Please set this value in your environment variables or user secrets. See the README setup steps for instructions.");
     }
 
     /// <summary>
@@ -98,7 +101,10 @@ public class GitHubAuthProvider : IAuthProvider
 
         if (string.IsNullOrEmpty(code))
         {
-            throw new Exception("Received no authorization code from GitHub.");
+            var details = $"Received no authorization code from GitHub. Query parameters: {request.QueryString}. " +
+                $"Possible causes: user denied access, invalid redirect URI, or other OAuth error. " +
+                $"Error: '{error}', Error Description: '{errorDescription}'";
+            throw new Exception(details);
         }
 
         try
@@ -193,7 +199,7 @@ public class GitHubAuthProvider : IAuthProvider
                 using var emailDoc = JsonDocument.Parse(emailJson);
                 var emails = emailDoc.RootElement.EnumerateArray();
 
-                // First, try to find a primary email
+                // Find primary email first, or first verified email as fallback
                 foreach (var emailObj in emails)
                 {
                     if (emailObj.TryGetProperty("primary", out var primaryProp) && primaryProp.GetBoolean())
@@ -201,18 +207,12 @@ public class GitHubAuthProvider : IAuthProvider
                         email = emailObj.GetProperty("email").GetString();
                         break;
                     }
-                }
 
-                // If no primary email found, use the first verified email
-                if (email == null)
-                {
-                    foreach (var emailObj in emails)
+                    // If no primary email found yet, check for verified email
+                    if (email == null && emailObj.TryGetProperty("verified", out var verifiedProp) && verifiedProp.GetBoolean())
                     {
-                        if (emailObj.TryGetProperty("verified", out var verifiedProp) && verifiedProp.GetBoolean())
-                        {
-                            email = emailObj.GetProperty("email").GetString();
-                            break;
-                        }
+                        email = emailObj.GetProperty("email").GetString();
+                        // Don't break here - continue looking for primary email
                     }
                 }
             }
@@ -267,7 +267,12 @@ public class GitHubAuthProvider : IAuthProvider
 
         if (!response.IsSuccessStatusCode)
         {
-            return null;
+            var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+            throw new HttpRequestException(
+                $"GitHub token exchange failed with status code {(int)response.StatusCode}: {response.ReasonPhrase}. Response: {errorContent}",
+                null,
+                response.StatusCode
+            );
         }
 
         var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
