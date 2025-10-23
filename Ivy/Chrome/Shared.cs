@@ -48,10 +48,15 @@ public static class ChromeSettingsExtensions
 [Signal(BroadcastType.Chrome)]
 public class NavigateSignal : AbstractSignal<NavigateArgs, Unit> { }
 
-public record NavigateArgs(string AppId, object? AppArgs = null, bool? PreventTabDuplicates = null)
+public record NavigateArgs(string? AppId, object? AppArgs = null, bool? PreventTabDuplicates = null)
 {
     public AppHost ToAppHost(string? parentId = null)
     {
+        if (this.AppId == null)
+        {
+            throw new InvalidOperationException("Cannot create AppHost: AppId is null.");
+        }
+
         return new AppHost(this.AppId, this.AppArgs != null ? JsonSerializer.Serialize(this.AppArgs) : null, parentId);
     }
 

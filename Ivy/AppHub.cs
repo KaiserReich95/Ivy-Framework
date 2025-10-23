@@ -509,7 +509,7 @@ public class AppHub(
         }
     }
 
-    public async Task Navigate(string appId)
+    public async Task Navigate(string? appId)
     {
         logger.LogInformation("Navigate: {ConnectionId} to [{AppId}]", Context.ConnectionId, appId);
 
@@ -529,13 +529,11 @@ public class AppHub(
 
         try
         {
-            // Get or create the NavigateSignal in the Chrome session
             var navigateSignal = (NavigateSignal)chromeSession.Signals.GetOrAdd(
                 typeof(NavigateSignal),
                 _ => new NavigateSignal()
             );
 
-            // Send the navigation signal
             await navigateSignal.Send(new NavigateArgs(appId, PreventTabDuplicates: true));
 
             logger.LogInformation("Navigate signal sent: {ConnectionId} to [{AppId}]", Context.ConnectionId, appId);
