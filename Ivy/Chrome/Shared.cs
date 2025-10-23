@@ -48,7 +48,7 @@ public static class ChromeSettingsExtensions
 [Signal(BroadcastType.Chrome)]
 public class NavigateSignal : AbstractSignal<NavigateArgs, Unit> { }
 
-public record NavigateArgs(string AppId, object? AppArgs = null)
+public record NavigateArgs(string AppId, object? AppArgs = null, bool? PreventTabDuplicates = null)
 {
     public AppHost ToAppHost(string? parentId = null)
     {
@@ -128,5 +128,3 @@ public interface INavigator
     public void Navigate(Type type, object? appArgs = null);
     public void Navigate(string uri, object? appArgs = null);
 }
-
-

@@ -129,7 +129,7 @@ public class DefaultSidebarChrome(ChromeSettings settings) : ViewBase
                 var tabId = Guid.NewGuid().ToString();
                 var appHost = navigateArgs.ToAppHost(args.ConnectionId);
 
-                if (settings.PreventTabDuplicates)
+                if (navigateArgs.PreventTabDuplicates ?? settings.PreventTabDuplicates)
                 {
                     var appId = navigateArgs.AppId;
                     int existingTabIndex = -1;
