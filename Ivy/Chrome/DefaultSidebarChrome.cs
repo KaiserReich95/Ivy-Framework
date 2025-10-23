@@ -225,6 +225,13 @@ public class DefaultSidebarChrome(ChromeSettings settings) : ViewBase
                 }
             }
             selectedIndex.Set(newIndex);
+
+            // Update browser URL when tab is closed
+            var navigateArgs = newIndex != null
+                ? new NavigateArgs(newTabs[newIndex.Value].AppId)
+                : new NavigateArgs(settings.DefaultAppId);
+            client.Redirect(navigateArgs.GetUrl());
+
             tabs.Set(newTabs);
         }
 
