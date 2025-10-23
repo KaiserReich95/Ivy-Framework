@@ -26,6 +26,8 @@ public class GitHubOAuthException(string? error, string? errorDescription)
 /// </summary>
 public class GitHubAuthProvider : IAuthProvider
 {
+    // Note: Static HttpClient follows the pattern used by other auth providers in this codebase.
+    // For multi-tenant scenarios, consider using IHttpClientFactory instead.
     private static readonly HttpClient _httpClient = new()
     {
         DefaultRequestHeaders = { { "User-Agent", "Ivy-Framework" } }
@@ -46,11 +48,11 @@ public class GitHubAuthProvider : IAuthProvider
             .AddUserSecrets(Assembly.GetEntryAssembly()!)
             .Build();
 
-        _clientId = configuration.GetValue<string>("GitHub:ClientId") ?? throw new ArgumentException(
+        _clientId = configuration.GetValue<string>("GitHub:ClientId") ?? throw new InvalidOperationException(
             "Missing required configuration: 'GitHub:ClientId'. Please set this value in your environment variables or user secrets. See the README setup steps for instructions.");
-        _clientSecret = configuration.GetValue<string>("GitHub:ClientSecret") ?? throw new ArgumentException(
+        _clientSecret = configuration.GetValue<string>("GitHub:ClientSecret") ?? throw new InvalidOperationException(
             "Missing required configuration: 'GitHub:ClientSecret'. Please set this value in your environment variables or user secrets. See the README setup steps for instructions.");
-        _redirectUri = configuration.GetValue<string>("GitHub:RedirectUri") ?? throw new ArgumentException(
+        _redirectUri = configuration.GetValue<string>("GitHub:RedirectUri") ?? throw new InvalidOperationException(
             "Missing required configuration: 'GitHub:RedirectUri'. Please set this value in your environment variables or user secrets. See the README setup steps for instructions.");
     }
 
@@ -101,7 +103,7 @@ public class GitHubAuthProvider : IAuthProvider
 
         if (string.IsNullOrEmpty(code))
         {
-            var details = $"Received no authorization code from GitHub. Query parameters: {request.QueryString}. " +
+            var details = $"Received no authorization code from GitHub. " +
                 $"Possible causes: user denied access, invalid redirect URI, or other OAuth error. " +
                 $"Error: '{error}', Error Description: '{errorDescription}'";
             throw new Exception(details);
