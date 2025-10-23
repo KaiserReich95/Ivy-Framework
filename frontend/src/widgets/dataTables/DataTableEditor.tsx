@@ -63,7 +63,6 @@ export const DataTableEditor: React.FC<TableEditorProps> = ({
   const { customTheme: tableTheme } = useThemeWithMonitoring<Partial<Theme>>({
     monitorDOM: true,
     monitorSystem: true,
-    convertToHex: true,
     customThemeGenerator: (
       colors: ThemeColors,
       isDark: boolean

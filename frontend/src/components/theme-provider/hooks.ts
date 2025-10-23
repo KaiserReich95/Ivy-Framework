@@ -1,7 +1,7 @@
 import { useContext, useEffect, useState, useCallback, useMemo } from 'react';
 import { ThemeProviderContext } from './context';
 import { getThemeColors, isDarkMode, ThemeColors } from '@/lib/color-utils';
-import { Theme } from '@glideapps/glide-data-grid';
+import type { Theme } from '@glideapps/glide-data-grid';
 
 export const useTheme = () => {
   const context = useContext(ThemeProviderContext);
@@ -30,12 +30,6 @@ export interface ThemeMonitorOptions {
    * @default 50
    */
   updateDelay?: number;
-
-  /**
-   * Whether to convert colors to hex format
-   * @default false
-   */
-  convertToHex?: boolean;
 
   /**
    * Custom theme generator function
@@ -88,15 +82,12 @@ export function useThemeWithMonitoring<T = Partial<Theme>>(
     monitorDOM = true,
     monitorSystem = true,
     updateDelay = 50,
-    convertToHex = false,
     customThemeGenerator,
   } = options;
 
   const { theme, setTheme } = useTheme();
   const [isDark, setIsDark] = useState(isDarkMode());
-  const [colors, setColors] = useState<ThemeColors>(() =>
-    getThemeColors(convertToHex)
-  );
+  const [colors, setColors] = useState<ThemeColors>(() => getThemeColors());
 
   // Generate custom theme if generator provided
   const customTheme = useMemo(() => {
@@ -111,12 +102,12 @@ export function useThemeWithMonitoring<T = Partial<Theme>>(
     requestAnimationFrame(() => {
       setTimeout(() => {
         const newIsDark = isDarkMode();
-        const newColors = getThemeColors(convertToHex);
+        const newColors = getThemeColors();
         setIsDark(newIsDark);
         setColors(newColors);
       }, updateDelay);
     });
-  }, [updateDelay, convertToHex]);
+  }, [updateDelay]);
 
   // Manual refresh function
   const refreshTheme = useCallback(() => {

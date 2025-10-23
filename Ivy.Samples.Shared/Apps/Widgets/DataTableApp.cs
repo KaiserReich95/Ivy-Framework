@@ -91,14 +91,14 @@ public class DataTableApp : SampleBase
             // InternalId is hidden
             .Hidden([u => u.InternalId])
             // Add icons to column headers
-            .Icon(u => u.Name, Icons.User)
-            .Icon(u => u.Email, Icons.Mail)
-            .Icon(u => u.Age, Icons.Hash)
-            .Icon(u => u.CreatedAt, Icons.Calendar)
-            .Icon(u => u.LastLogin, Icons.Clock)
-            .Icon(u => u.Status, Icons.Activity)
-            .Icon(u => u.Priority, Icons.Flag)
-            .Icon(u => u.Activity, Icons.Zap)
+            .Icon(u => u.Name, DataTableIcons.User)
+            .Icon(u => u.Email, DataTableIcons.Mail)
+            .Icon(u => u.Age, DataTableIcons.Hash)
+            .Icon(u => u.CreatedAt, DataTableIcons.Calendar)
+            .Icon(u => u.LastLogin, DataTableIcons.Clock)
+            .Icon(u => u.Status, DataTableIcons.Activity)
+            .Icon(u => u.Priority, DataTableIcons.Flag)
+            .Icon(u => u.Activity, DataTableIcons.Zap)
             // Groups
             .Group(u => u.Name, "Basic Info")
             .Group(u => u.Email, "Basic Info")
