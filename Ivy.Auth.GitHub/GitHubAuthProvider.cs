@@ -153,7 +153,7 @@ public class GitHubAuthProvider : IAuthProvider
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/user");
-            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("token", token);
 
             var response = await _httpClient.SendAsync(request, cancellationToken);
             return response.IsSuccessStatusCode;
@@ -172,7 +172,7 @@ public class GitHubAuthProvider : IAuthProvider
         try
         {
             using var userRequest = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/user");
-            userRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            userRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("token", token);
 
             var userResponse = await _httpClient.SendAsync(userRequest, cancellationToken);
             if (!userResponse.IsSuccessStatusCode)
@@ -190,7 +190,7 @@ public class GitHubAuthProvider : IAuthProvider
             var avatarUrl = user.TryGetProperty("avatar_url", out var avatarProp) ? avatarProp.GetString() : null;
 
             using var emailRequest = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/user/emails");
-            emailRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            emailRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("token", token);
 
             var emailResponse = await _httpClient.SendAsync(emailRequest, cancellationToken);
             string? email = null;
