@@ -25,21 +25,25 @@ export function getTableTheme(theme: AppTheme): Partial<Theme> {
   return {
     bgCell: getCSSVariable('--background') || (isDark ? '#000000' : '#ffffff'),
     bgHeader:
-      getCSSVariable('--background') || (isDark ? '#000000' : '#ffffff'),
+      getCSSVariable('--background') || (isDark ? '#1a1a1f' : '#f9fafb'),
     bgHeaderHasFocus:
       getCSSVariable('--muted') || (isDark ? '#26262b' : '#f3f4f6'),
     bgHeaderHovered:
       getCSSVariable('--accent') || (isDark ? '#26262b' : '#e5e7eb'),
+    textHeader:
+      getCSSVariable('--foreground') || (isDark ? '#f8f8f8' : '#111827'),
     textDark:
       getCSSVariable('--foreground') || (isDark ? '#f8f8f8' : '#111827'),
     textMedium:
-      getCSSVariable('--muted-foreground') || (isDark ? '#a1a1aa' : '#6b7280'),
+      getCSSVariable('--foreground') || (isDark ? '#a1a1aa' : '#6b7280'),
     textLight:
-      getCSSVariable('--muted-foreground') || (isDark ? '#71717a' : '#9ca3af'),
-    borderColor: 'transparent',
+      getCSSVariable('--foreground') || (isDark ? '#71717a' : '#9ca3af'),
+    bgIconHeader:
+      getCSSVariable('--slate-dark') || (isDark ? '#f8f8f8' : '#111827'),
     horizontalBorderColor:
       getCSSVariable('--border') || (isDark ? '#404045' : '#d1d5db'),
     linkColor: getCSSVariable('--accent') || (isDark ? '#26262b' : '#e5e7eb'),
+    borderColor: 'transparent', //getCSSVariable('--border') || (isDark ? '#404045' : '#d1d5db'),
     cellHorizontalPadding: 16,
     cellVerticalPadding: 8,
     headerIconSize: 16,
