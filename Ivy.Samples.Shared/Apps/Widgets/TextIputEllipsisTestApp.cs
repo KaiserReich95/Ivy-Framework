@@ -132,6 +132,56 @@ public class TextInputEllipsisTestApp : SampleBase
                | Text.P($"Disabled: {disabledText.Value}")
                | Text.P($"Invalid: {invalidText.Value}")
 
+               | Text.H2("List Widget Tests with Long Text")
+               | Text.P("Testing List with long text in titles and subtitles:")
+               | new Card(
+                new List(
+                   new ListItem(
+                       title: "Short Title",
+                       subtitle: "Short subtitle"
+                   ),
+                   new ListItem(
+                       title: "This is an extremely long title that should definitely be truncated with ellipsis and show proper behavior when the text exceeds the available width",
+                       subtitle: "Short subtitle"
+                   ),
+                   new ListItem(
+                       title: "Medium length title",
+                       subtitle: "This is an extremely long subtitle that should definitely be truncated with ellipsis and show proper behavior when the text exceeds the available width of the list item"
+                   ),
+                   new ListItem(
+                       title: "This is an extremely long title that should definitely be truncated with ellipsis and show proper behavior when the text exceeds the available width",
+                       subtitle: "This is also an extremely long subtitle that should definitely be truncated with ellipsis and show proper behavior when the text exceeds the available width of the list item"
+                   ),
+                   new ListItem(
+                       title: "List item with very long title text that demonstrates how the List widget handles overflow and whether it applies ellipsis correctly to prevent layout issues",
+                       subtitle: "And an equally long subtitle that explains in great detail what this list item represents, including all of its features, capabilities, and use cases that should definitely be truncated"
+                   ),
+                   new ListItem(
+                       title: "Another example with maximum length title to test the absolute limits of text truncation in list items and see how the UI handles extremely long content",
+                       subtitle: "With a maximum length subtitle that provides extensive information about the list item including detailed descriptions of its purpose, functionality, and expected behavior in various scenarios"
+                   ),
+                   new ListItem(
+                       title: "Short",
+                       subtitle: "Normal",
+                       badge: "This is a very long badge text that should also demonstrate ellipsis behavior"
+                   ),
+                   new ListItem(
+                       title: "Testing all fields",
+                       subtitle: "With reasonable length",
+                       badge: "VeryLongBadgeTextThatShouldBeTruncated"
+                   )
+               )).Width(Size.Units(60))
+               | new Card(
+                new Expandable("Click to expandClick to expandClick to expandClick to expandClick to expandClick to expandClick to expandClick to expandClick to expandClick to expandClick to expandClick to expandClick to expandClick to expandClick to expandClick to expandClick to expandClick to expandClick to expandClick to expandClick to expandClick to expandClick to expandClick to expandClick to expand",
+    "This is the hidden content that appears when you expand the widget.").Width(Size.Units(30))
+               ).Width(Size.Units(60))
+               | new Card(
+                   Layout.Vertical()
+                   | Text.H2("AsyncSelectInput Widget Test")
+                   | Text.P("Testing AsyncSelectInput with category selection:")
+                   | new AsyncSelectDemo()
+               ).Width(Size.Units(60))
+
                | Text.H2("Expected Behavior")
                | Text.P("Expected ellipsis behavior:")
                | Text.P("• TextInput should show ellipsis (...) when text exceeds the input field width")
@@ -139,6 +189,38 @@ public class TextInputEllipsisTestApp : SampleBase
                | Text.P("• Error messages should be truncated if they exceed available space")
                | Text.P("• All states (normal, disabled, invalid) should handle ellipsis consistently")
                | Text.P("• Different sizes should maintain proper ellipsis behavior")
-               | Text.P("• Text should be selectable and editable even when truncated");
+               | Text.P("• Text should be selectable and editable even when truncated")
+               | Text.P("• List items should truncate long titles, subtitles, and badges with ellipsis")
+               | Text.P("• Tooltips should appear on hover for truncated list content");
+    }
+}
+
+public class AsyncSelectDemo : ViewBase
+{
+    private static readonly string[] Categories = { "akdjsfhjksdfhakjslfhasjkdfhasdjkfhakjsdfhklhafsdf", "Clothing", "Books", "Home & Garden", "Sports" };
+
+    public override object? Build()
+    {
+        var selectedCategory = this.UseState<string?>(default(string?));
+
+        Task<Option<string>[]> QueryCategories(string query)
+        {
+            return System.Threading.Tasks.Task.FromResult(Categories
+                .Where(c => c.Contains(query, StringComparison.OrdinalIgnoreCase))
+                .Select(c => new Option<string>(c))
+                .ToArray());
+        }
+
+        Task<Option<string>?> LookupCategory(string? category)
+        {
+            return System.Threading.Tasks.Task.FromResult(category != null ? new Option<string>(category) : null);
+        }
+
+        return Layout.Vertical()
+            | Text.Label("Select a category:")
+            | (Layout.Horizontal()
+                | selectedCategory.ToAsyncSelectInput(QueryCategories, LookupCategory, "Search categories...Search categories...Search categories...Search categories...Search categories..."))
+                .Width(Size.Units(30))
+            | Text.Small($"Selected: {selectedCategory.Value ?? "None"}");
     }
 }

@@ -231,7 +231,7 @@ export const TextBlockWidget: React.FC<TextBlockWidgetProps> = ({
   };
 
   const Component = variantMap[variant];
-  return (
+  const element = (
     <Component
       style={styles}
       className={cn(
@@ -242,4 +242,20 @@ export const TextBlockWidget: React.FC<TextBlockWidgetProps> = ({
       {content}
     </Component>
   );
+
+  // If ellipsis overflow is set, wrap in tooltip
+  if (overflow === 'Ellipsis') {
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>{element}</TooltipTrigger>
+          <TooltipContent className="bg-popover text-popover-foreground shadow-md max-w-sm">
+            <div className="whitespace-pre-wrap wrap-break-word">{content}</div>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  }
+
+  return element;
 };
