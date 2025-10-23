@@ -217,7 +217,7 @@ public class GitHubAuthProvider : IAuthProvider
                     if (email == null && emailObj.TryGetProperty("verified", out var verifiedProp) && verifiedProp.GetBoolean())
                     {
                         email = emailObj.GetProperty("email").GetString();
-                        // Don't break here - continue looking for primary email
+                        break; // Get first verified email, not last
                     }
                 }
             }
