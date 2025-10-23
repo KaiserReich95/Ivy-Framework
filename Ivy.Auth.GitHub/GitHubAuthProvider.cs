@@ -110,7 +110,7 @@ public class GitHubAuthProvider : IAuthProvider
         }
         catch (Exception ex)
         {
-            throw new Exception($"Failed to exchange authorization code for access token: {ex.Message}");
+            throw new Exception($"Failed to exchange authorization code for access token: {ex.Message}", ex);
         }
     }
 
@@ -187,6 +187,7 @@ public class GitHubAuthProvider : IAuthProvider
                 using var emailDoc = JsonDocument.Parse(emailJson);
                 var emails = emailDoc.RootElement.EnumerateArray();
 
+                // First, try to find a primary email
                 foreach (var emailObj in emails)
                 {
                     if (emailObj.TryGetProperty("primary", out var primaryProp) && primaryProp.GetBoolean())
@@ -194,9 +195,18 @@ public class GitHubAuthProvider : IAuthProvider
                         email = emailObj.GetProperty("email").GetString();
                         break;
                     }
-                    if (emailObj.TryGetProperty("verified", out var verifiedProp) && verifiedProp.GetBoolean())
+                }
+
+                // If no primary email found, use the first verified email
+                if (email == null)
+                {
+                    foreach (var emailObj in emails)
                     {
-                        email = emailObj.GetProperty("email").GetString();
+                        if (emailObj.TryGetProperty("verified", out var verifiedProp) && verifiedProp.GetBoolean())
+                        {
+                            email = emailObj.GetProperty("email").GetString();
+                            break;
+                        }
                     }
                 }
             }
