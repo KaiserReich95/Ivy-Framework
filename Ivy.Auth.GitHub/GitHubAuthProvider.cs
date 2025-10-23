@@ -180,20 +180,22 @@ public class GitHubAuthProvider : IAuthProvider
                 using var emailDoc = JsonDocument.Parse(emailJson);
                 var emails = emailDoc.RootElement.EnumerateArray();
 
+                string? primaryEmail = null;
+                string? firstVerifiedEmail = null;
+
                 foreach (var emailObj in emails)
                 {
                     if (emailObj.TryGetProperty("primary", out var primaryProp) && primaryProp.GetBoolean())
                     {
-                        email = emailObj.GetProperty("email").GetString();
-                        break;
+                        primaryEmail = emailObj.GetProperty("email").GetString();
                     }
-
-                    if (email == null && emailObj.TryGetProperty("verified", out var verifiedProp) && verifiedProp.GetBoolean())
+                    else if (firstVerifiedEmail == null && emailObj.TryGetProperty("verified", out var verifiedProp) && verifiedProp.GetBoolean())
                     {
-                        email = emailObj.GetProperty("email").GetString();
-                        break;
+                        firstVerifiedEmail = emailObj.GetProperty("email").GetString();
                     }
                 }
+
+                email = primaryEmail ?? firstVerifiedEmail;
             }
 
             email ??= login;
@@ -267,10 +269,18 @@ public class GitHubAuthProvider : IAuthProvider
         catch (JsonException)
         {
         }
-        var parameters = responseContent.Split('&')
-            .Select(p => p.Split('='))
-            .Where(p => p.Length == 2)
-            .ToDictionary(p => p[0], p => Uri.UnescapeDataString(p[1]));
+        var parameters = new Dictionary<string, string>();
+        foreach (var pair in responseContent.Split('&'))
+        {
+            var parts = pair.Split('=');
+            if (parts.Length == 2)
+            {
+                if (!parameters.ContainsKey(parts[0]))
+                {
+                    parameters[parts[0]] = Uri.UnescapeDataString(parts[1]);
+                }
+            }
+        }
 
         if (parameters.TryGetValue("access_token", out var accessToken))
         {
