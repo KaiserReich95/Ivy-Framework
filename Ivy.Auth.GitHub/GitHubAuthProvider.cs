@@ -26,6 +26,11 @@ public class GitHubOAuthException(string? error, string? errorDescription)
 /// </summary>
 public class GitHubAuthProvider : IAuthProvider
 {
+    private static readonly HttpClient _httpClient = new()
+    {
+        DefaultRequestHeaders = { { "User-Agent", "Ivy-Framework" } }
+    };
+
     private readonly string _clientId;
     private readonly string _clientSecret;
     private readonly string _redirectUri;
@@ -139,11 +144,10 @@ public class GitHubAuthProvider : IAuthProvider
     {
         try
         {
-            using var httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
-            httpClient.DefaultRequestHeaders.Add("User-Agent", "Ivy-Framework");
+            using var request = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/user");
+            request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-            var response = await httpClient.GetAsync("https://api.github.com/user", cancellationToken);
+            var response = await _httpClient.SendAsync(request, cancellationToken);
             return response.IsSuccessStatusCode;
         }
         catch
@@ -159,11 +163,10 @@ public class GitHubAuthProvider : IAuthProvider
     {
         try
         {
-            using var httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
-            httpClient.DefaultRequestHeaders.Add("User-Agent", "Ivy-Framework");
+            using var userRequest = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/user");
+            userRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-            var userResponse = await httpClient.GetAsync("https://api.github.com/user", cancellationToken);
+            var userResponse = await _httpClient.SendAsync(userRequest, cancellationToken);
             if (!userResponse.IsSuccessStatusCode)
             {
                 return null;
@@ -178,7 +181,10 @@ public class GitHubAuthProvider : IAuthProvider
             var name = user.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : null;
             var avatarUrl = user.TryGetProperty("avatar_url", out var avatarProp) ? avatarProp.GetString() : null;
 
-            var emailResponse = await httpClient.GetAsync("https://api.github.com/user/emails", cancellationToken);
+            using var emailRequest = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/user/emails");
+            emailRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+
+            var emailResponse = await _httpClient.SendAsync(emailRequest, cancellationToken);
             string? email = null;
 
             if (emailResponse.IsSuccessStatusCode)
@@ -249,9 +255,7 @@ public class GitHubAuthProvider : IAuthProvider
 
     private async Task<GitHubTokenResponse?> ExchangeCodeForTokenAsync(string code, CancellationToken cancellationToken)
     {
-        using var httpClient = new HttpClient();
-
-        var requestBody = new FormUrlEncodedContent(new[]
+        using var requestBody = new FormUrlEncodedContent(new[]
         {
             new KeyValuePair<string, string>("client_id", _clientId),
             new KeyValuePair<string, string>("client_secret", _clientSecret),
@@ -259,7 +263,7 @@ public class GitHubAuthProvider : IAuthProvider
             new KeyValuePair<string, string>("redirect_uri", _redirectUri)
         });
 
-        var response = await httpClient.PostAsync("https://github.com/login/oauth/access_token", requestBody, cancellationToken);
+        var response = await _httpClient.PostAsync("https://github.com/login/oauth/access_token", requestBody, cancellationToken);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -268,7 +272,6 @@ public class GitHubAuthProvider : IAuthProvider
 
         var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
-        // Parse the response (GitHub returns form-encoded data)
         var parameters = responseContent.Split('&')
             .Select(p => p.Split('='))
             .Where(p => p.Length == 2)
