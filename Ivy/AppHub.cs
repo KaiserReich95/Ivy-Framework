@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Ivy.Apps;
 using Ivy.Auth;
+using Ivy.Chrome;
 using Ivy.Client;
 using Ivy.Core;
 using Ivy.Core.Exceptions;
@@ -508,16 +509,41 @@ public class AppHub(
         }
     }
 
-    public void Navigate(string appId)
+    public async Task Navigate(string appId)
     {
-        logger.LogInformation($"Navigate: {Context.ConnectionId} [{appId}]");
+        logger.LogInformation("Navigate: {ConnectionId} to [{AppId}]", Context.ConnectionId, appId);
+
+        // Find the Chrome session for this connection
         if (!sessionStore.Sessions.TryGetValue(Context.ConnectionId, out var appSession))
         {
-            logger.LogWarning($"Navigate: {Context.ConnectionId} [{appId}] [AppSession Not Found]");
+            logger.LogWarning("Navigate: {ConnectionId} [{AppId}] [AppSession not found]", Context.ConnectionId, appId);
             return;
         }
 
-        Console.WriteLine($"navigate to {appId}");
+        var chromeSession = sessionStore.FindChrome(appSession);
+        if (chromeSession == null)
+        {
+            logger.LogWarning("Navigate: {ConnectionId} [{AppId}] [Chrome session not found]", Context.ConnectionId, appId);
+            return;
+        }
+
+        try
+        {
+            // Get or create the NavigateSignal in the Chrome session
+            var navigateSignal = (NavigateSignal)chromeSession.Signals.GetOrAdd(
+                typeof(NavigateSignal),
+                _ => new NavigateSignal()
+            );
+
+            // Send the navigation signal
+            await navigateSignal.Send(new NavigateArgs(appId, PreventTabDuplicates: true));
+
+            logger.LogInformation("Navigate signal sent: {ConnectionId} to [{AppId}]", Context.ConnectionId, appId);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError(ex, "Failed to send navigate signal: {ConnectionId} to [{AppId}]", Context.ConnectionId, appId);
+        }
     }
 
     private AuthToken? GetAuthToken(HttpContext httpContext)
