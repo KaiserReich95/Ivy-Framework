@@ -263,7 +263,11 @@ public class GitHubAuthProvider : IAuthProvider
             new KeyValuePair<string, string>("redirect_uri", _redirectUri)
         });
 
-        var response = await _httpClient.PostAsync("https://github.com/login/oauth/access_token", requestBody, cancellationToken);
+        using var request = new HttpRequestMessage(HttpMethod.Post, "https://github.com/login/oauth/access_token");
+        request.Content = requestBody;
+        request.Headers.Accept.Add(new System.Net.Http.Headers.MediaTypeWithQualityHeaderValue("application/vnd.github+json"));
+
+        var response = await _httpClient.SendAsync(request, cancellationToken);
 
         if (!response.IsSuccessStatusCode)
         {
@@ -277,6 +281,23 @@ public class GitHubAuthProvider : IAuthProvider
 
         var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
+        // Try to parse as JSON first, fall back to form-encoded
+        try
+        {
+            using var jsonDoc = JsonDocument.Parse(responseContent);
+            var root = jsonDoc.RootElement;
+
+            if (root.TryGetProperty("access_token", out var accessTokenProp))
+            {
+                return new GitHubTokenResponse(accessTokenProp.GetString()!);
+            }
+        }
+        catch (JsonException)
+        {
+            // Fall back to form-encoded parsing
+        }
+
+        // Parse as form-encoded data (fallback)
         var parameters = responseContent.Split('&')
             .Select(p => p.Split('='))
             .Where(p => p.Length == 2)
