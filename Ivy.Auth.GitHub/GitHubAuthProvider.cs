@@ -123,6 +123,9 @@ public class GitHubAuthProvider : IAuthProvider
     /// <summary>Validate access token via GitHub API</summary>
     public async Task<bool> ValidateAccessTokenAsync(string token, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(token))
+            return false;
+
         try
         {
             using var request = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/user");
@@ -142,6 +145,9 @@ public class GitHubAuthProvider : IAuthProvider
     /// <summary>Get user info from GitHub API</summary>
     public async Task<UserInfo?> GetUserInfoAsync(string token, CancellationToken cancellationToken = default)
     {
+        if (string.IsNullOrWhiteSpace(token))
+            return null;
+
         try
         {
             using var userRequest = new HttpRequestMessage(HttpMethod.Get, "https://api.github.com/user");
@@ -201,7 +207,7 @@ public class GitHubAuthProvider : IAuthProvider
 
             return new UserInfo(userId, email, name, avatarUrl);
         }
-        catch (JsonException)
+        catch (Exception ex) when (ex is JsonException or HttpRequestException or TaskCanceledException)
         {
             return null;
         }
@@ -255,15 +261,22 @@ public class GitHubAuthProvider : IAuthProvider
 
         var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
-        using var jsonDoc = JsonDocument.Parse(responseContent);
-        var root = jsonDoc.RootElement;
-
-        if (root.TryGetProperty("access_token", out var accessTokenProp))
+        try
         {
-            return new GitHubTokenResponse(accessTokenProp.GetString()!);
-        }
+            using var jsonDoc = JsonDocument.Parse(responseContent);
+            var root = jsonDoc.RootElement;
 
-        return null;
+            if (root.TryGetProperty("access_token", out var accessTokenProp))
+            {
+                return new GitHubTokenResponse(accessTokenProp.GetString()!);
+            }
+
+            return null;
+        }
+        catch (JsonException ex)
+        {
+            throw new HttpRequestException($"Invalid JSON response from GitHub token endpoint: {ex.Message}", ex);
+        }
     }
 
     private record GitHubTokenResponse(string AccessToken);
