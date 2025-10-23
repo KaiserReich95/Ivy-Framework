@@ -73,10 +73,15 @@ describe('columnHelpers', () => {
       );
 
       expect(result).toEqual([
-        { title: 'ID', width: 80, group: undefined },
-        { title: 'Name', width: 150, group: undefined },
-        { title: 'Status', width: 100, group: undefined },
-        { title: 'Created', width: 120, group: undefined },
+        { title: 'ID', width: 80, group: undefined, icon: 'headerNumber' },
+        { title: 'Name', width: 150, group: undefined, icon: 'headerString' },
+        {
+          title: 'Status',
+          width: 100,
+          group: undefined,
+          icon: 'headerBoolean',
+        },
+        { title: 'Created', width: 120, group: undefined, icon: 'headerDate' },
       ]);
     });
 
