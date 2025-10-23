@@ -12,9 +12,7 @@ using Microsoft.Extensions.Http;
 
 namespace Ivy.Auth.GitHub;
 
-/// <summary>
-/// Exception thrown when GitHub OAuth operations fail.
-/// </summary>
+/// <summary>GitHub OAuth exception</summary>
 public class GitHubOAuthException(string? error, string? errorDescription)
     : Exception($"GitHub OAuth error: '{error}' - {errorDescription}")
 {
@@ -22,9 +20,7 @@ public class GitHubOAuthException(string? error, string? errorDescription)
     public string? ErrorDescription { get; } = errorDescription;
 }
 
-/// <summary>
-/// GitHub authentication provider that implements OAuth 2.0 flow for GitHub authentication.
-/// </summary>
+/// <summary>GitHub OAuth 2.0 authentication provider</summary>
 public class GitHubAuthProvider : IAuthProvider
 {
     private readonly HttpClient _httpClient;
@@ -33,9 +29,7 @@ public class GitHubAuthProvider : IAuthProvider
     private readonly string _redirectUri;
     private readonly List<AuthOption> _authOptions = new();
 
-    /// <summary>
-    /// Initializes a new instance of the GitHubAuthProvider with configuration from environment variables and user secrets.
-    /// </summary>
+    /// <summary>Initialize GitHub auth provider</summary>
     public GitHubAuthProvider(IHttpClientFactory httpClientFactory)
     {
         _httpClient = httpClientFactory.CreateClient("GitHubAuth");
@@ -53,18 +47,13 @@ public class GitHubAuthProvider : IAuthProvider
             "Missing required configuration: 'GitHub:RedirectUri'. Please set this value in your environment variables or user secrets. See the README setup steps for instructions.");
     }
 
-    /// <summary>
-    /// GitHub doesn't support email/password authentication directly.
-    /// This method throws a NotSupportedException.
-    /// </summary>
+    /// <summary>Not supported - use OAuth flow</summary>
     public Task<AuthToken?> LoginAsync(string email, string password, CancellationToken cancellationToken = default)
     {
         throw new NotSupportedException("GitHub authentication only supports OAuth flow. Use GetOAuthUriAsync and HandleOAuthCallbackAsync instead.");
     }
 
-    /// <summary>
-    /// Generates a GitHub OAuth authorization URI.
-    /// </summary>
+    /// <summary>Generate OAuth authorization URI</summary>
     public Task<Uri> GetOAuthUriAsync(AuthOption option, WebhookEndpoint callback, CancellationToken cancellationToken = default)
     {
         var callbackUri = callback.GetUri(includeIdInPath: false);
@@ -84,9 +73,7 @@ public class GitHubAuthProvider : IAuthProvider
         return Task.FromResult(authUrl.Uri);
     }
 
-    /// <summary>
-    /// Handles the GitHub OAuth callback and exchanges the authorization code for an access token.
-    /// </summary>
+    /// <summary>Handle OAuth callback and exchange code for token</summary>
     public async Task<AuthToken?> HandleOAuthCallbackAsync(HttpRequest request, CancellationToken cancellationToken = default)
     {
         var code = request.Query["code"].ToString();
@@ -108,7 +95,6 @@ public class GitHubAuthProvider : IAuthProvider
 
         try
         {
-            // Exchange authorization code for access token
             var tokenResponse = await ExchangeCodeForTokenAsync(code, cancellationToken);
 
             if (tokenResponse == null)
@@ -124,27 +110,19 @@ public class GitHubAuthProvider : IAuthProvider
         }
     }
 
-    /// <summary>
-    /// GitHub doesn't support logout via API for OAuth tokens.
-    /// This method completes successfully without action.
-    /// </summary>
+    /// <summary>No-op logout</summary>
     public Task LogoutAsync(string token, CancellationToken cancellationToken = default)
     {
         return Task.CompletedTask;
     }
 
-    /// <summary>
-    /// GitHub OAuth tokens don't have refresh tokens.
-    /// This method returns null as GitHub tokens are long-lived.
-    /// </summary>
+    /// <summary>No refresh tokens - returns null</summary>
     public Task<AuthToken?> RefreshAccessTokenAsync(AuthToken token, CancellationToken cancellationToken = default)
     {
         return Task.FromResult<AuthToken?>(null);
     }
 
-    /// <summary>
-    /// Validates a GitHub access token by making a request to the GitHub API.
-    /// </summary>
+    /// <summary>Validate access token via GitHub API</summary>
     public async Task<bool> ValidateAccessTokenAsync(string token, CancellationToken cancellationToken = default)
     {
         try
@@ -163,9 +141,7 @@ public class GitHubAuthProvider : IAuthProvider
         }
     }
 
-    /// <summary>
-    /// Retrieves user information from GitHub using the access token.
-    /// </summary>
+    /// <summary>Get user info from GitHub API</summary>
     public async Task<UserInfo?> GetUserInfoAsync(string token, CancellationToken cancellationToken = default)
     {
         try
@@ -204,7 +180,6 @@ public class GitHubAuthProvider : IAuthProvider
                 using var emailDoc = JsonDocument.Parse(emailJson);
                 var emails = emailDoc.RootElement.EnumerateArray();
 
-                // Find primary email first, or first verified email as fallback
                 foreach (var emailObj in emails)
                 {
                     if (emailObj.TryGetProperty("primary", out var primaryProp) && primaryProp.GetBoolean())
@@ -213,11 +188,10 @@ public class GitHubAuthProvider : IAuthProvider
                         break;
                     }
 
-                    // If no primary email found yet, check for verified email
                     if (email == null && emailObj.TryGetProperty("verified", out var verifiedProp) && verifiedProp.GetBoolean())
                     {
                         email = emailObj.GetProperty("email").GetString();
-                        break; // Get first verified email, not last
+                        break;
                     }
                 }
             }
@@ -232,26 +206,19 @@ public class GitHubAuthProvider : IAuthProvider
         }
     }
 
-    /// <summary>
-    /// Gets the available authentication options for GitHub.
-    /// </summary>
+    /// <summary>Get auth options</summary>
     public AuthOption[] GetAuthOptions()
     {
         return _authOptions.ToArray();
     }
 
-    /// <summary>
-    /// GitHub OAuth tokens don't have expiration times in the traditional sense.
-    /// This method returns null as GitHub tokens are long-lived.
-    /// </summary>
+    /// <summary>No expiration - returns null</summary>
     public Task<DateTimeOffset?> GetTokenExpiration(AuthToken token, CancellationToken cancellationToken = default)
     {
         return Task.FromResult<DateTimeOffset?>(null);
     }
 
-    /// <summary>
-    /// Adds GitHub OAuth authentication option.
-    /// </summary>
+    /// <summary>Add GitHub auth option</summary>
     public GitHubAuthProvider UseGitHub()
     {
         _authOptions.Add(new AuthOption(AuthFlow.OAuth, "GitHub", "github", Icons.Github));
@@ -287,7 +254,6 @@ public class GitHubAuthProvider : IAuthProvider
 
         var responseContent = await response.Content.ReadAsStringAsync(cancellationToken);
 
-        // Try to parse as JSON first, fall back to form-encoded
         try
         {
             using var jsonDoc = JsonDocument.Parse(responseContent);
@@ -300,10 +266,7 @@ public class GitHubAuthProvider : IAuthProvider
         }
         catch (JsonException)
         {
-            // Fall back to form-encoded parsing
         }
-
-        // Parse as form-encoded data (fallback)
         var parameters = responseContent.Split('&')
             .Select(p => p.Split('='))
             .Where(p => p.Length == 2)
