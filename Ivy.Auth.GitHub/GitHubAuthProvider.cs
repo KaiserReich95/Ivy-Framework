@@ -163,7 +163,6 @@ public class GitHubAuthProvider : IAuthProvider
             httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {token}");
             httpClient.DefaultRequestHeaders.Add("User-Agent", "Ivy-Framework");
 
-            // Get user information
             var userResponse = await httpClient.GetAsync("https://api.github.com/user", cancellationToken);
             if (!userResponse.IsSuccessStatusCode)
             {
@@ -179,7 +178,6 @@ public class GitHubAuthProvider : IAuthProvider
             var name = user.TryGetProperty("name", out var nameProp) ? nameProp.GetString() : null;
             var avatarUrl = user.TryGetProperty("avatar_url", out var avatarProp) ? avatarProp.GetString() : null;
 
-            // Get user's email addresses
             var emailResponse = await httpClient.GetAsync("https://api.github.com/user/emails", cancellationToken);
             string? email = null;
 
@@ -189,7 +187,6 @@ public class GitHubAuthProvider : IAuthProvider
                 using var emailDoc = JsonDocument.Parse(emailJson);
                 var emails = emailDoc.RootElement.EnumerateArray();
 
-                // Find the primary email or the first verified email
                 foreach (var emailObj in emails)
                 {
                     if (emailObj.TryGetProperty("primary", out var primaryProp) && primaryProp.GetBoolean())
@@ -204,7 +201,6 @@ public class GitHubAuthProvider : IAuthProvider
                 }
             }
 
-            // Fallback to login if no email found
             email ??= login;
 
             return new UserInfo(userId, email, name, avatarUrl);
