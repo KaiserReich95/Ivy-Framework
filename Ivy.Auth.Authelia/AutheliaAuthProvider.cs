@@ -3,7 +3,7 @@ using System.Net;
 using System.Reflection;
 using System.Text;
 using System.Text.Json;
-using Ivy.Hooks;
+using Ivy.Abstractions.Auth;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;

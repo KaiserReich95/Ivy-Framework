@@ -6,7 +6,7 @@
     <Nullable>enable</Nullable>
     <NoWarn>CS1591</NoWarn>
     <PackageId>Ivy.Abstractions</PackageId>
-    <Version>1.0.1</Version>
+    <Version>2.0.1</Version>
     <Company>Ivy</Company>
     <Description>Build Internal Applications with AI and Pure C#</Description>
     <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
@@ -15,5 +15,9 @@
     <RepositoryType>git</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>
   </PropertyGroup>
-  
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
 </Project>

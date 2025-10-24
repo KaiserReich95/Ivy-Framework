@@ -1,11 +1,11 @@
 using System.Reflection;
 using System.Text.Json;
-using Ivy.Shared;
+using Ivy.Abstractions;
+using Ivy.Abstractions.Auth;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Graph;
 using Microsoft.Identity.Client;
-using Ivy.Hooks;
 using System.Text.Json.Serialization;
 using System.Security.Claims;
 using Microsoft.IdentityModel.Protocols;

@@ -1,8 +1,8 @@
 ﻿using System.Reflection;
 using System.Security.Claims;
 using System.Text;
-using Ivy.Hooks;
-using Ivy.Shared;
+using Ivy.Abstractions;
+using Ivy.Abstractions.Auth;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Supabase;

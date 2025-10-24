@@ -1,7 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="../../Ivy/Directory.Build.props" Condition="Exists('../../Ivy/Directory.Build.props')" />
-  
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -49,6 +47,7 @@
   </ItemGroup>
   
   <ItemGroup>
+    <PackageReference Include="Ivy.Abstractions" Version="2.0.1" />
     <PackageReference Include="Grpc.AspNetCore" Version="2.64.0" />
     <PackageReference Include="Apache.Arrow" Version="15.0.0" />
     <PackageReference Include="ExcelNumberFormat" Version="1.1.0" />

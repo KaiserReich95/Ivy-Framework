@@ -1,7 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   
-  <Import Project="../../Ivy/Directory.Build.props" Condition="Exists('../../Ivy/Directory.Build.props')" />
-  
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
@@ -19,7 +17,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../Ivy/Ivy.csproj" />
+    <PackageReference Include="Ivy.Abstractions" Version="2.0.1" />
   </ItemGroup>
 
   <PropertyGroup>
