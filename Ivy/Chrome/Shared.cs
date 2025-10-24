@@ -48,7 +48,13 @@ public static class ChromeSettingsExtensions
 [Signal(BroadcastType.Chrome)]
 public class NavigateSignal : AbstractSignal<NavigateArgs, Unit> { }
 
-public record NavigateArgs(string? AppId, object? AppArgs = null, bool? PreventTabDuplicates = null)
+public enum NavigationPurpose
+{
+    NewDestination,
+    HistoryTraversal,
+}
+
+public record NavigateArgs(string? AppId, object? AppArgs = null, string? TabId = null, NavigationPurpose Purpose = NavigationPurpose.NewDestination)
 {
     public AppHost ToAppHost(string? parentId = null)
     {

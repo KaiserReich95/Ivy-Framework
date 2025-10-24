@@ -27,9 +27,14 @@ type ErrorMessage = {
   stackTrace?: string;
 };
 
+type HistoryState = {
+  tabId?: string;
+};
+
 type RedirectMessage = {
   url: string;
   replaceHistory: boolean;
+  state: HistoryState;
 };
 
 type AuthToken = {
@@ -224,19 +229,11 @@ export const useBackend = (
     const { url, replaceHistory } = message;
 
     if (url.startsWith('/')) {
-      const existingUrl = window.location;
-      const existingPath =
-        existingUrl.pathname + existingUrl.search + existingUrl.hash;
-
-      if (url === existingPath) {
-        return;
-      }
-
       // For path-based redirects, update the pathname
       if (replaceHistory) {
-        window.history.replaceState({}, '', url);
+        window.history.replaceState(message.state, '', url);
       } else {
-        window.history.pushState({}, '', url);
+        window.history.pushState(message.state, '', url);
       }
     } else {
       // For full URL redirects

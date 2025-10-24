@@ -509,9 +509,9 @@ public class AppHub(
         }
     }
 
-    public async Task Navigate(string? appId)
+    public async Task Navigate(string? appId, HistoryState? state)
     {
-        logger.LogInformation("Navigate: {ConnectionId} to [{AppId}]", Context.ConnectionId, appId);
+        logger.LogInformation("Navigate: {ConnectionId} to [{AppId}] with tab ID {TabId}", Context.ConnectionId, appId, state?.TabId);
 
         // Find the Chrome session for this connection
         if (!sessionStore.Sessions.TryGetValue(Context.ConnectionId, out var appSession))
@@ -534,7 +534,7 @@ public class AppHub(
                 _ => new NavigateSignal()
             );
 
-            await navigateSignal.Send(new NavigateArgs(appId, PreventTabDuplicates: true));
+            await navigateSignal.Send(new NavigateArgs(appId, TabId: state?.TabId, Purpose: NavigationPurpose.HistoryTraversal));
 
             logger.LogInformation("Navigate signal sent: {ConnectionId} to [{AppId}]", Context.ConnectionId, appId);
         }

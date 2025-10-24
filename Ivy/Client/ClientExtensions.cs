@@ -17,10 +17,16 @@ public class ErrorMessage
     public string? StackTrace { get; set; }
 }
 
+public class HistoryState
+{
+    public string? TabId { get; set; }
+}
+
 public class RedirectMessage
 {
     public string? Url { get; set; }
     public bool ReplaceHistory { get; set; }
+    public HistoryState? State { get; set; }
 }
 
 public class SetAuthTokenMessage
@@ -45,9 +51,16 @@ public static class ClientExtensions
         client.Sender.Send("OpenUrl", uri.ToString());
     }
 
-    public static void Redirect(this IClientProvider client, string url, bool replaceHistory = false)
+    public static void Redirect(this IClientProvider client, string url, bool replaceHistory = false, string? tabId = null)
     {
-        client.Sender.Send("Redirect", new RedirectMessage { Url = url, ReplaceHistory = replaceHistory });
+        client.Sender.Send(
+            "Redirect",
+            new RedirectMessage
+            {
+                Url = url,
+                ReplaceHistory = replaceHistory,
+                State = new HistoryState { TabId = tabId }
+            });
     }
 
     public static void SetAuthToken(this IClientProvider client, AuthToken? authToken, bool reloadPage = true)

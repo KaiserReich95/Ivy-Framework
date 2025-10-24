@@ -27,13 +27,11 @@ export function App() {
     hasLicensedFeature('RemoveBranding').then(setRemoveBranding);
   }, []);
 
-  const handlePopState = () => {
+  const handlePopState = (event: PopStateEvent) => {
     const newAppId = getAppId();
-    if (newAppId !== appId) {
-      connection?.invoke('Navigate', newAppId).catch(err => {
-        console.error('SignalR Error when sending Navigate:', err);
-      });
-    }
+    connection?.invoke('Navigate', newAppId, event.state).catch(err => {
+      console.error('SignalR Error when sending Navigate:', err);
+    });
   };
 
   useEffect(() => {
