@@ -220,7 +220,7 @@ public class DefaultSidebarChrome(ChromeSettings settings) : ViewBase
         {
             if (@event.Value is string appId)
             {
-                client.OpenUrl(new NavigateArgs(appId).GetUrl());
+                client.OpenUrl(new NavigateArgs(appId, Chrome: false).GetUrl());
             }
             return ValueTask.CompletedTask;
         }

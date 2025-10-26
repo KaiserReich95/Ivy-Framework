@@ -54,7 +54,7 @@ public enum NavigationPurpose
     HistoryTraversal,
 }
 
-public record NavigateArgs(string? AppId, object? AppArgs = null, string? TabId = null, NavigationPurpose Purpose = NavigationPurpose.NewDestination)
+public record NavigateArgs(string? AppId, object? AppArgs = null, string? TabId = null, NavigationPurpose Purpose = NavigationPurpose.NewDestination, bool Chrome = true)
 {
     public AppHost ToAppHost(string? parentId = null)
     {
@@ -84,6 +84,11 @@ public record NavigateArgs(string? AppId, object? AppArgs = null, string? TabId 
             var jsonArgs = JsonSerializer.Serialize(this.AppArgs);
             var encodedArgs = System.Web.HttpUtility.UrlEncode(jsonArgs);
             queryParams.Add($"appArgs={encodedArgs}");
+        }
+
+        if (!this.Chrome)
+        {
+            queryParams.Add("chrome=false");
         }
 
         if (queryParams.Any())
