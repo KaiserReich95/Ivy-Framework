@@ -30,17 +30,26 @@ public class AppHub(
 {
     public static (string AppId, string? NavigationAppId) GetAppId(Server server, HttpContext httpContext)
     {
-        string? appId = server.DefaultAppId;
+        bool chrome = true;
+        if (httpContext!.Request.Query.ContainsKey("chrome"))
+        {
+            chrome = !httpContext!.Request.Query["chrome"].ToString().Equals("false", StringComparison.InvariantCultureIgnoreCase);
+        }
+
+        string? appId = null;
         string? navigationAppId = null;
 
         if (httpContext!.Request.Query.ContainsKey("appId"))
         {
-            appId = httpContext!.Request.Query["appId"].ToString();
-        }
-
-        if (httpContext!.Request.Query.ContainsKey("navigationAppId"))
-        {
-            navigationAppId = httpContext!.Request.Query["navigationAppId"].ToString();
+            var id = httpContext!.Request.Query["appId"].ToString();
+            if (chrome)
+            {
+                navigationAppId = id;
+            }
+            else
+            {
+                appId = id;
+            }
         }
 
         if (string.IsNullOrEmpty(appId))

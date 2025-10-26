@@ -12,20 +12,16 @@ import { ThemeProvider } from './theme-provider';
 import { EventHandlerProvider } from './event-handler';
 
 export function App() {
-  let appId = getAppId();
-  let navigationAppId: string | null = '';
+  const appId = getAppId();
   const appArgs = getAppArgs();
   const parentId = getParentId();
   const chrome = getChromeParam();
-  if (chrome) {
-    [appId, navigationAppId] = [navigationAppId, appId];
-  }
 
   const { connection, widgetTree, eventHandler, disconnected } = useBackend(
     appId,
     appArgs,
     parentId,
-    navigationAppId
+    chrome
   );
   const [removeBranding, setRemoveBranding] = useState(true);
 

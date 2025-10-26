@@ -140,7 +140,7 @@ export const useBackend = (
   appId: string | null,
   appArgs: string | null,
   parentId: string | null,
-  navigationAppId: string | null = null
+  chrome: boolean
 ) => {
   const [connection, setConnection] = useState<signalR.HubConnection | null>(
     null
@@ -151,6 +151,7 @@ export const useBackend = (
   const machineId = getMachineId();
   const connectionId = connection?.connectionId;
   const currentConnectionRef = useRef<signalR.HubConnection | null>(null);
+  const stableAppId = chrome ? '' : appId;
 
   useEffect(() => {
     if (import.meta.env.DEV && widgetTree) {
@@ -287,7 +288,7 @@ export const useBackend = (
 
     const newConnection = new signalR.HubConnectionBuilder()
       .withUrl(
-        `${getIvyHost()}/messages?appId=${appId ?? ''}&appArgs=${appArgs ?? ''}&machineId=${machineId}&parentId=${parentId ?? ''}&navigationAppId=${navigationAppId ?? ''}`
+        `${getIvyHost()}/messages?appId=${appId ?? ''}&appArgs=${appArgs ?? ''}&machineId=${machineId}&parentId=${parentId ?? ''}&chrome=${chrome}`
       )
       .withAutomaticReconnect()
       .build();
@@ -304,7 +305,7 @@ export const useBackend = (
         currentConnectionRef.current = null;
       }
     };
-  }, [appArgs, appId, machineId, parentId]);
+  }, [appArgs, stableAppId, machineId, parentId]);
 
   useEffect(() => {
     if (
@@ -444,7 +445,7 @@ export const useBackend = (
     handleRedirect,
     handleSetTheme,
     handleError,
-    appId,
+    stableAppId,
     parentId,
   ]);
 
