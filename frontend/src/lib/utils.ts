@@ -91,6 +91,11 @@ export function getParentId(): string | null {
   return urlParams.get('parentId');
 }
 
+export function getChromeParam(): boolean {
+  const urlParams = new URLSearchParams(window.location.search);
+  return urlParams.get('chrome')?.toLowerCase() !== 'false';
+}
+
 function generateUUID(): string {
   if (typeof crypto.randomUUID === 'function') {
     return crypto.randomUUID();
