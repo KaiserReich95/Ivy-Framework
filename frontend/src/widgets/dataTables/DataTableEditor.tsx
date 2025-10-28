@@ -22,6 +22,7 @@ import { convertToGridColumns } from './utils/columnHelpers';
 import { iconCellRenderer } from './utils/customRenderers';
 import { generateHeaderIcons, addStandardIcons } from './utils/headerIcons';
 import { ThemeColors } from '@/lib/color-utils';
+import { ErrorWidget } from '@/widgets/primitives/ErrorWidget';
 
 interface TableEditorProps {
   hasOptions?: boolean;
@@ -40,6 +41,7 @@ export const DataTableEditor: React.FC<TableEditorProps> = ({
     editable,
     config,
     columnOrder,
+    queryError,
     loadMoreData,
     handleColumnResize,
     handleSort,
@@ -192,6 +194,23 @@ export const DataTableEditor: React.FC<TableEditorProps> = ({
 
   return (
     <div ref={containerRef} style={containerStyle}>
+      {queryError && (
+        <div
+          style={{
+            padding: '16px',
+            backgroundColor: 'var(--destructive-background, #fee)',
+            border: '1px solid var(--destructive, #dc2626)',
+            borderRadius: '8px',
+            marginBottom: '16px',
+          }}
+        >
+          <ErrorWidget
+            title={queryError.title}
+            message={queryError.message}
+            stackTrace={queryError.stackTrace}
+          />
+        </div>
+      )}
       <DataEditor
         ref={gridRef}
         columns={gridColumns}

@@ -16,6 +16,11 @@ import {
   SortDirection,
 } from './types/types';
 import { fetchTableData } from './utils/tableDataFetcher';
+import {
+  useDataTableError,
+  DataTableErrorInfo,
+  DataTableErrorType,
+} from './hooks/useDataTableError';
 
 /**
  * Parses a Size string (e.g., "Px:200") to a numeric pixel value
@@ -45,7 +50,8 @@ interface TableContextType {
   visibleRows: number;
   isLoading: boolean;
   hasMore: boolean;
-  error: string | null;
+  queryError: DataTableErrorInfo | null;
+  filterParsingError: DataTableErrorInfo | null;
   editable: boolean;
   connection: DataTableConnection;
   config: DataTableConfiguration;
@@ -58,7 +64,9 @@ interface TableContextType {
   handleColumnResize: (column: GridColumn, newSize: number) => void;
   handleSort: (columnName: string) => void;
   setActiveFilter: (filter: Filter | null) => void;
-  setError: (error: string | null) => void;
+  handleQueryError: (error: unknown) => void;
+  handleFilterParsingError: (error: unknown) => void;
+  clearError: (errorType: DataTableErrorType) => void;
   handleColumnReorder: (startIndex: number, endIndex: number) => void;
 }
 
@@ -88,10 +96,19 @@ export const TableProvider: React.FC<TableProviderProps> = ({
   const [visibleRows, setVisibleRows] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [activeFilter, setActiveFilter] = useState<Filter | null>(null);
   const [activeSort, setActiveSort] = useState<SortOrder[] | null>(null);
   const [columnOrder, setColumnOrder] = useState<number[]>([]);
+
+  // Use centralized error handling hook
+  const {
+    queryError,
+    filterParsingError,
+    handleQueryError,
+    handleFilterParsingError,
+    clearError,
+    clearAllErrors,
+  } = useDataTableError();
 
   const loadingRef = useRef(false);
   const currentRowCountRef = useRef(0);
@@ -135,12 +152,12 @@ export const TableProvider: React.FC<TableProviderProps> = ({
   useEffect(() => {
     const loadInitialData = async () => {
       if (!connection.port || !connection.path) {
-        setError('Connection configuration is required');
+        handleQueryError(new Error('Connection configuration is required'));
         return;
       }
 
       setIsLoading(true);
-      setError(null);
+      clearAllErrors();
 
       try {
         // When sorting/filtering changes, currentRowCountRef is reset to 0
@@ -155,7 +172,8 @@ export const TableProvider: React.FC<TableProviderProps> = ({
           0,
           rowsToFetch,
           activeFilter,
-          activeSort
+          activeSort,
+          handleQueryError
         );
 
         // Merge Arrow columns with columnsProp (columnsProp has all metadata)
@@ -216,15 +234,21 @@ export const TableProvider: React.FC<TableProviderProps> = ({
           return widths;
         });
       } catch (err) {
-        const errorMessage =
-          err instanceof Error ? err.message : 'Failed to load data';
-        setError(errorMessage);
+        handleQueryError(err);
       } finally {
         setIsLoading(false);
       }
     };
     loadInitialData();
-  }, [connection, activeFilter, activeSort, columnOrder.length, columnsProp]);
+  }, [
+    connection,
+    activeFilter,
+    activeSort,
+    columnOrder.length,
+    columnsProp,
+    handleQueryError,
+    clearAllErrors,
+  ]);
 
   // Load more data
   const loadMoreData = useCallback(async () => {
@@ -239,7 +263,8 @@ export const TableProvider: React.FC<TableProviderProps> = ({
         data.length,
         batchSize,
         activeFilter,
-        activeSort
+        activeSort,
+        handleQueryError
       );
 
       if (result.rows.length > 0) {
@@ -250,14 +275,19 @@ export const TableProvider: React.FC<TableProviderProps> = ({
 
       setHasMore(result.hasMore);
     } catch (err) {
-      const errorMessage =
-        err instanceof Error ? err.message : 'Failed to load more data';
-      setError(errorMessage);
+      handleQueryError(err);
     } finally {
       setIsLoading(false);
       loadingRef.current = false;
     }
-  }, [connection, data.length, hasMore, activeFilter, activeSort]);
+  }, [
+    connection,
+    data.length,
+    hasMore,
+    activeFilter,
+    activeSort,
+    handleQueryError,
+  ]);
 
   // Handle column resize
   const handleColumnResize = useCallback(
@@ -354,7 +384,8 @@ export const TableProvider: React.FC<TableProviderProps> = ({
     visibleRows,
     isLoading,
     hasMore,
-    error,
+    queryError,
+    filterParsingError,
     editable,
     connection,
     config,
@@ -365,7 +396,9 @@ export const TableProvider: React.FC<TableProviderProps> = ({
     handleColumnResize,
     handleSort,
     setActiveFilter,
-    setError,
+    handleQueryError,
+    handleFilterParsingError,
+    clearError,
     handleColumnReorder,
   };
 

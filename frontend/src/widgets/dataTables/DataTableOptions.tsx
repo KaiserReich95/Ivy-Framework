@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useTable } from './DataTableContext';
 import { tableStyles } from './styles/style';
 import {
@@ -8,7 +8,7 @@ import {
 } from 'filter-query-editor';
 import { Filter } from '@/services/grpcTableService';
 import { parseInvalidQuery } from './utils/tableDataFetcher';
-import { Loader2 } from 'lucide-react';
+import { useRecentQueries } from './hooks/useRecentQueries';
 
 export const DataTableOptions: React.FC<{
   hasOptions: { allowFiltering: boolean; allowLlmFiltering: boolean };
@@ -16,11 +16,25 @@ export const DataTableOptions: React.FC<{
   const [query, setQuery] = useState<string>('');
   const [pendingFilter, setPendingFilter] = useState<Filter | null>(null);
   const [isParsing, setIsParsing] = useState(false);
-  const [isQueryValid, setIsQueryValid] = useState(true);
 
-  const { columns, setActiveFilter, connection } = useTable();
+  // New state variables for QueryEditor component
+  const [isCollapsed, setIsCollapsed] = useState<boolean>(true);
+  const [statusState, setStatusState] = useState<
+    'waiting' | 'ai' | 'query' | 'error'
+  >('waiting');
+  const [allowLLMFiltering, setAllowLLMFiltering] = useState<boolean>(true);
+  //const [errors, setErrors] = useState<string[]>([]);
 
-  const { allowFiltering, allowLlmFiltering } = hasOptions;
+  const { columns, setActiveFilter, connection, handleFilterParsingError } =
+    useTable();
+
+  const { allowFiltering } = hasOptions;
+
+  // Recent queries hook for localStorage persistence
+  const { recentQueries, addQuery: addRecentQuery } = useRecentQueries({
+    storageKey: 'datatable-recent-queries',
+    maxQueries: 10,
+  });
 
   // Filter columns to only include filterable ones (defaults to true if not specified)
   // Map DataColumn to ColumnDef format expected by QueryEditor
@@ -37,26 +51,32 @@ export const DataTableOptions: React.FC<{
   );
 
   /**
-   * Handle query editor text changes - only update state, no filtering
+   * Handle query editor text changes - update state and statusState
    */
   const handleQueryChange = useCallback(
     (event: QueryEditorChangeEvent) => {
       setQuery(event.text);
-      setIsQueryValid(event.isValid);
+      setErrors(event.errors || []);
 
-      if (event.text.trim() === '') {
-        // Clear pending filter for empty query
+      // Update status based on validity
+      if (event.text.length === 0) {
+        setStatusState('waiting');
         setPendingFilter(null);
         setActiveFilter(null);
       } else if (event.isValid && event.filters) {
-        // Store valid filter for when user presses Enter
+        setStatusState('query');
         setPendingFilter({ group: event.filters });
-      } else {
-        // Invalid query - clear pending filter
+      } else if (!event.isValid) {
+        // Show error state if LLM filtering is disabled, otherwise show AI state
+        if (!allowLLMFiltering) {
+          setStatusState('error');
+        } else {
+          setStatusState('ai');
+        }
         setPendingFilter(null);
       }
     },
-    [setActiveFilter]
+    [setActiveFilter, allowLLMFiltering]
   );
 
   /**
@@ -70,7 +90,11 @@ export const DataTableOptions: React.FC<{
     setIsParsing(true);
     try {
       // Call parseFilter endpoint with the invalid query string
-      const result = await parseInvalidQuery(query, connection);
+      const result = await parseInvalidQuery(
+        query,
+        connection,
+        handleFilterParsingError
+      );
 
       if (result.filterExpression) {
         // Handle both possible response field names
@@ -92,60 +116,92 @@ export const DataTableOptions: React.FC<{
           // Update UI with corrected query
           setQuery(correctedQuery);
           setPendingFilter(newFilter);
-          setIsQueryValid(true);
+          setStatusState('query');
 
           // Apply the filter immediately
           setActiveFilter(newFilter);
+
+          // Save corrected query to recent queries
+          addRecentQuery(correctedQuery);
         }
       }
-    } catch {
-      // TODO - unhappy path: Silent error handling - could add user notification here if needed
+    } catch (error) {
+      // Error is already handled by handleFilterParsingError in parseInvalidQuery
+      // Just log it here for debugging
+      console.debug('Filter parsing failed:', error);
     } finally {
       setIsParsing(false);
     }
-  }, [query, isParsing, connection, queryEditorColumns, setActiveFilter]);
+  }, [
+    query,
+    isParsing,
+    connection,
+    queryEditorColumns,
+    setActiveFilter,
+    handleFilterParsingError,
+    addRecentQuery,
+  ]);
 
   /**
-   * Handle Enter key press - the main entry point for applying filters
+   * Handle Apply button click in QueryEditor
    */
-  const handleEnterKey = useCallback(async () => {
+  const handleApply = useCallback(async () => {
     // Case 1: Empty query - clear filter
     if (query.trim() === '') {
       setActiveFilter(null);
+      setIsCollapsed(true);
       return;
     }
 
     // Case 2: Valid query with pending filter - apply it
-    if (isQueryValid && pendingFilter) {
+    if (statusState === 'query' && pendingFilter) {
       setActiveFilter(pendingFilter);
+      addRecentQuery(query); // Save to recent queries
+      setIsCollapsed(true);
       return;
     }
 
-    // Case 3: Invalid query - try to parse it
-    if (!isQueryValid && allowLlmFiltering) {
+    // Case 3: Invalid query in AI mode - try to parse it
+    if (statusState === 'ai' && allowLLMFiltering) {
       await handleInvalidQuery();
+      setIsCollapsed(true);
       return;
     }
-
-    // TODO - unhappy path: Valid query but no pending filter (edge case)
-  }, [query, isQueryValid, pendingFilter, setActiveFilter, handleInvalidQuery]);
+  }, [
+    query,
+    statusState,
+    pendingFilter,
+    allowLLMFiltering,
+    setActiveFilter,
+    handleInvalidQuery,
+    setIsCollapsed,
+    addRecentQuery,
+  ]);
 
   /**
-   * Keyboard event handler
+   * Reactive status updates when AI filtering toggle changes
    */
-  const handleKeyDown = useCallback(
-    async (event: React.KeyboardEvent) => {
-      // Check for Enter key with optional modifiers
-      if (
-        event.key === 'Enter' &&
-        (event.metaKey || event.ctrlKey || !event.shiftKey)
-      ) {
-        event.preventDefault();
-        await handleEnterKey();
+  useEffect(() => {
+    if (query.length === 0) {
+      setStatusState('waiting');
+    } else {
+      const result = parseQuery(query, queryEditorColumns);
+      const isValid =
+        result.filters && (!result.errors || result.errors.length === 0);
+
+      if (isValid) {
+        // Query is valid
+        setStatusState('query');
+      } else {
+        // Query is invalid
+        if (!allowLLMFiltering) {
+          setStatusState('error');
+        } else {
+          setStatusState('ai');
+        }
       }
-    },
-    [handleEnterKey]
-  );
+    }
+  }, [allowLLMFiltering, query, queryEditorColumns]);
 
   // Early return after all hooks
   if (columns.length === 0) {
@@ -153,26 +209,27 @@ export const DataTableOptions: React.FC<{
   }
 
   const queryEditorContent = (
-    <div className="flex gap-2 items-center flex-col sm:flex-row">
-      <div
-        className="w-full min-w-[300px] query-editor-wrapper"
-        onKeyDown={handleKeyDown}
-      >
-        <QueryEditor
-          value={query}
-          columns={queryEditorColumns}
-          onChange={handleQueryChange}
-          placeholder='e.g., [Name] = "John" AND [Age] > 18'
-          height={40}
-          className="font-mono rounded-lg border shadow-sm [&:focus-within]:ring-1 [&:focus-within]:ring-ring"
-        />
-        <style>{tableStyles.queryEditor.css}</style>
-      </div>
-      {isParsing && (
-        <div className="flex items-center justify-center">
-          <Loader2 className="animate-spin h-4 w-4 text-gray-500" />
-        </div>
-      )}
+    <div className="w-full query-editor-wrapper">
+      <QueryEditor
+        isCollapsed={isCollapsed}
+        onToggle={setIsCollapsed}
+        queries={recentQueries}
+        onQuerySelect={setQuery}
+        statusState={statusState}
+        isLoading={isParsing}
+        onApply={handleApply}
+        allowLLMFiltering={allowLLMFiltering}
+        onLLMFilteringChange={setAllowLLMFiltering}
+        aiToggleLabel="AI Filtering"
+        value={query}
+        columns={queryEditorColumns}
+        onChange={handleQueryChange}
+        placeholder='e.g., [Name] = "John" AND [Age] > 18'
+        height={48}
+        buttonText="Filters"
+        showButtonText={false}
+      />
+      <style>{tableStyles.queryEditor.css}</style>
     </div>
   );
 

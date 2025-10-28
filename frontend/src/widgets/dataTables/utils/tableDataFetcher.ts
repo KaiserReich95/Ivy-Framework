@@ -13,7 +13,8 @@ import { logger } from '@/lib/logger';
 
 export const parseInvalidQuery = async (
   invalidQuery: string,
-  connection?: DataTableConnection
+  connection?: DataTableConnection,
+  onError?: (error: unknown) => void
 ): Promise<ParseFilterResult> => {
   try {
     const backendUrl = new URL(getIvyHost());
@@ -31,6 +32,10 @@ export const parseInvalidQuery = async (
     return result;
   } catch (error) {
     logger.error('Failed to parse invalid query:', error);
+    // Call error handler if provided
+    if (onError) {
+      onError(error);
+    }
     throw error;
   }
 };
@@ -40,7 +45,8 @@ export const fetchTableData = async (
   startIndex: number,
   count: number,
   filter?: Filter | null,
-  sort?: SortOrder[] | null
+  sort?: SortOrder[] | null,
+  onError?: (error: unknown) => void
 ): Promise<{ columns: DataColumn[]; rows: DataRow[]; hasMore: boolean }> => {
   const backendUrl = new URL(getIvyHost());
 
@@ -73,7 +79,11 @@ export const fetchTableData = async (
 
     return { columns: [], rows: [], hasMore: false };
   } catch (error) {
-    console.error('Failed to fetch table data:', error);
+    logger.error('Failed to fetch table data:', error);
+    // Call error handler if provided
+    if (onError) {
+      onError(error);
+    }
     throw error;
   }
 };

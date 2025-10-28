@@ -2,30 +2,53 @@ import '@glideapps/glide-data-grid/dist/index.css';
 import './styles/checkbox.css';
 import React from 'react';
 import { TableProvider, useTable } from './DataTableContext';
-import { ErrorDisplay } from '@/components/ErrorDisplay';
 import { Loading } from '@/components/Loading';
 import { DataTableEditor } from './DataTableEditor';
 import { DataTableOptions } from './DataTableOptions';
 import { tableStyles } from './styles/style';
 import { TableProps } from './types/types';
 import { getWidth, getHeight } from '@/lib/styles';
+import { ErrorWidget } from '@/widgets/primitives/ErrorWidget';
 
 interface TableLayoutProps {
   children?: React.ReactNode;
 }
 
 const TableLayout: React.FC<TableLayoutProps> = ({ children }) => {
-  const { error, columns } = useTable();
+  const { columns, filterParsingError } = useTable();
   const showTableEditor = columns.length > 0;
 
-  if (error) {
-    return <ErrorDisplay title="Table Error" message={error} />;
-  }
-
   return (
-    <div style={tableStyles.table.container}>
-      {showTableEditor ? children : <Loading />}
-    </div>
+    <>
+      {filterParsingError && (
+        <div
+          style={{
+            position: 'fixed',
+            top: '20px',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 1000,
+            maxWidth: '600px',
+            width: '90%',
+            padding: '12px',
+            backgroundColor: 'var(--destructive-background, #fee)',
+            border: '1px solid var(--destructive, #dc2626)',
+            borderRadius: '6px',
+            boxShadow:
+              '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)',
+          }}
+        >
+          <ErrorWidget
+            title={filterParsingError.title}
+            message={filterParsingError.message}
+            stackTrace={filterParsingError.stackTrace}
+          />
+        </div>
+      )}
+      <div style={tableStyles.table.container}>
+        {showTableEditor ? children : <Loading />}
+      </div>
+    </>
   );
 };
 
