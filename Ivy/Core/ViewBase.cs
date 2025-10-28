@@ -218,4 +218,5 @@ public abstract class ViewBase() : IView, IViewContextOwner
     /// <returns>The arguments object, or null if not found.</returns>
     protected T? UseArgs<T>() where T : class =>
         this.Context.UseArgs<T>();
+
 }
