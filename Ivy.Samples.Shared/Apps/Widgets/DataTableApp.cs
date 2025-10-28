@@ -108,9 +108,21 @@ public class DataTableApp : SampleBase
             .Group(u => u.Status, "Metrics")
             .Group(u => u.Priority, "Metrics")
             .Group(u => u.Activity, "Metrics")
-            // Config
-            .Config(config => config.AllowLlmFiltering = true)
-            // Use small batch size for demonstration
-            .BatchSize(10);
+            // Configure all available DataTable properties
+            .Config(config =>
+            {
+                config.FreezeColumns = 2;                    // Freeze first 2 columns (Name, Email)
+                config.AllowSorting = true;                  // Enable sorting
+                config.AllowFiltering = true;                // Enable filtering
+                config.AllowLlmFiltering = true;             // Enable AI-powered filtering
+                config.AllowColumnReordering = true;         // Allow reordering columns
+                config.AllowColumnResizing = true;           // Allow resizing columns
+                config.AllowCopySelection = true;            // Allow copying selected cells
+                config.SelectionMode = SelectionModes.Cells; // Enable cell selection
+                config.ShowIndexColumn = true;               // Show row index column
+                config.ShowGroups = true;                    // Show column groups
+                config.BatchSize = 10;                       // Load 10 rows at a time
+                config.LoadAllRows = false;                  // Use pagination instead of loading all
+            });
     }
 }
