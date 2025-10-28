@@ -4,10 +4,36 @@ import {
   SortOrder,
   TableQuery,
   grpcTableService,
+  ParseFilterResult,
 } from '@/services/grpcTableService';
 import * as arrow from 'apache-arrow';
 import { DataColumn, DataRow, DataTableConnection } from '../types/types';
 import { convertArrowTableToData } from './tableDataMapper';
+import { logger } from '@/lib/logger';
+
+export const parseInvalidQuery = async (
+  invalidQuery: string,
+  connection?: DataTableConnection
+): Promise<ParseFilterResult> => {
+  try {
+    // Use getIvyHost() which returns the correct backend URL from meta tag or window.location.origin
+    const serverUrl = getIvyHost();
+
+    const result = await grpcTableService.parseFilter(
+      {
+        payload: invalidQuery,
+        connectionId: connection?.connectionId,
+        sourceId: connection?.sourceId,
+      },
+      serverUrl
+    );
+
+    return result;
+  } catch (error) {
+    logger.error('Failed to parse invalid query:', error);
+    throw error;
+  }
+};
 
 export const fetchTableData = async (
   connection: DataTableConnection,
@@ -16,8 +42,8 @@ export const fetchTableData = async (
   filter?: Filter | null,
   sort?: SortOrder[] | null
 ): Promise<{ columns: DataColumn[]; rows: DataRow[]; hasMore: boolean }> => {
-  const backendUrl = new URL(getIvyHost());
-  const serverUrl = `${backendUrl.protocol}//${backendUrl.hostname}:${connection.port}`;
+  // Use getIvyHost() which returns the correct backend URL from meta tag or window.location.origin
+  const serverUrl = getIvyHost();
 
   const query: TableQuery = {
     limit: count,

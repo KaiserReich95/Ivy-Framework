@@ -87,13 +87,16 @@ export const generateDataProps = (data: Record<string, unknown>[]) => {
   };
 };
 
-export function generateEChartGrid(cartesianGrid?: CartesianGridProps) {
+export function generateEChartGrid(
+  cartesianGrid?: CartesianGridProps,
+  hasLegend: boolean = false
+) {
   const defaultGrid = {
     show: true,
     left: 2,
     right: 2,
     top: 30,
-    bottom: 30,
+    bottom: hasLegend ? 60 : 30, // More space for legend
     containLabel: true,
   };
 
@@ -113,28 +116,23 @@ export function generateEChartLegend(
   legend?: LegendProps,
   themeColors?: { foreground: string; fontSans: string }
 ) {
-  if (!legend)
-    return {
-      show: true,
-      textStyle: generateTextStyle(
-        themeColors?.foreground,
-        themeColors?.fontSans
-      ),
-    };
-
-  return {
-    show: true,
-    icon: legend.iconType ? legend.iconType : 'rect',
-    itemWidth: legend.iconSize ?? 14,
-    itemHeight: legend.iconSize ?? 14,
-    itemGap: 16,
-    orient: legend.layout?.toLowerCase(),
-    top: legend.verticalAlign === 'Bottom' ? 'bottom' : 'top',
+  const defaultLegends = {
     type: 'scroll',
+    show: true,
     textStyle: generateTextStyle(
       themeColors?.foreground,
       themeColors?.fontSans
     ),
+  };
+  if (!legend) return defaultLegends;
+
+  return {
+    ...defaultLegends,
+    icon: legend.iconType ? legend.iconType : 'rect',
+    itemWidth: legend.iconSize ?? 14,
+    itemHeight: legend.iconSize ?? 14,
+    orient: legend.layout?.toLowerCase(),
+    top: legend.verticalAlign === 'Bottom' ? 'bottom' : 'top',
   };
 }
 

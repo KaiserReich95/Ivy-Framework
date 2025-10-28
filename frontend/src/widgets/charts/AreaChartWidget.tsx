@@ -108,7 +108,8 @@ const AreaChartWidget: React.FC<AreaChartWidgetProps> = ({
   const styles: React.CSSProperties = {
     ...getWidth(width),
     ...getHeight(height),
-    minHeight: 300,
+    display: 'flex',
+    flexDirection: 'column',
   };
 
   const { categories, valueKeys } = generateDataProps(data);
@@ -143,7 +144,7 @@ const AreaChartWidget: React.FC<AreaChartWidgetProps> = ({
       },
       showSymbol: false,
       areaStyle: gradientColors[i],
-      emphasis: { focus: 'series' }, // Disable hover animation only for area, keep axisPointer
+      emphasis: { focus: 'series' },
       data: data.map(d => d[key]),
       markPoint: referenceDots ?? {},
       markLine: referenceLines ?? {},
@@ -152,7 +153,7 @@ const AreaChartWidget: React.FC<AreaChartWidgetProps> = ({
   });
 
   const option = {
-    grid: generateEChartGrid(cartesianGrid),
+    grid: generateEChartGrid(cartesianGrid, !!legend),
     color: colors,
     tooltip: generateTooltip(tooltip, 'cross', {
       foreground: themeColors.foreground,
@@ -164,11 +165,6 @@ const AreaChartWidget: React.FC<AreaChartWidgetProps> = ({
       fontSans: themeColors.fontSans,
     }),
     textStyle: generateTextStyle(themeColors.foreground, themeColors.fontSans),
-    toolbox: {
-      feature: {
-        saveAsImage: {},
-      },
-    },
     xAxis: generateXAxis(categories as string[], xAxis, false, {
       mutedForeground: themeColors.mutedForeground,
       fontSans: themeColors.fontSans,
@@ -189,7 +185,17 @@ const AreaChartWidget: React.FC<AreaChartWidgetProps> = ({
     series: series,
   };
 
-  return <ReactECharts key={theme} option={option} style={styles} />;
+  return (
+    <div style={styles}>
+      <div style={{ flex: 1, minHeight: 0 }}>
+        <ReactECharts
+          key={theme}
+          option={option}
+          style={{ height: '100%', width: '100%' }}
+        />
+      </div>
+    </div>
+  );
 };
 
 export default AreaChartWidget;

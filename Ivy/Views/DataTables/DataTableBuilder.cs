@@ -8,7 +8,7 @@ using Microsoft.Extensions.AI;
 
 namespace Ivy.Views.DataTables;
 
-public class DataTableBuilder<TModel> : ViewBase, IStateless
+public class DataTableBuilder<TModel> : ViewBase
 {
     private readonly IQueryable<TModel> _queryable;
     private Size? _width;
@@ -172,7 +172,7 @@ public class DataTableBuilder<TModel> : ViewBase, IStateless
         return this;
     }
 
-    public DataTableBuilder<TModel> Icon(Expression<Func<TModel, object>> field, Icons icon)
+    public DataTableBuilder<TModel> Icon(Expression<Func<TModel, object>> field, string icon)
     {
         var column = GetColumn(field);
         column.Column.Icon = icon;
@@ -239,6 +239,18 @@ public class DataTableBuilder<TModel> : ViewBase, IStateless
     public DataTableBuilder<TModel> Config(Action<DataTableConfiguration> config)
     {
         config(_configuration);
+        return this;
+    }
+
+    public DataTableBuilder<TModel> BatchSize(int batchSize)
+    {
+        _configuration.BatchSize = batchSize;
+        return this;
+    }
+
+    public DataTableBuilder<TModel> LoadAllRows(bool loadAll = true)
+    {
+        _configuration.LoadAllRows = loadAll;
         return this;
     }
 

@@ -39,9 +39,9 @@ export const DataTable: React.FC<TableProps> = ({
 }) => {
   // Apply default configuration values
   const finalConfig = {
-    // allowSearch: config.allowSearch ?? true,
     filterType: config.filterType,
     freezeColumns: config.freezeColumns ?? null,
+    allowLlmFiltering: config.allowLlmFiltering ?? true,
     allowSorting: config.allowSorting ?? true,
     allowFiltering: config.allowFiltering ?? true,
     allowColumnReordering: config.allowColumnReordering ?? true,
@@ -50,6 +50,8 @@ export const DataTable: React.FC<TableProps> = ({
     selectionMode: config.selectionMode,
     showIndexColumn: config.showIndexColumn ?? false,
     showGroups: config.showGroups ?? false,
+    batchSize: config.batchSize,
+    loadAllRows: config.loadAllRows ?? false,
   };
 
   // Create styles object with width and height if provided
@@ -71,6 +73,7 @@ export const DataTable: React.FC<TableProps> = ({
             <DataTableOptions
               hasOptions={{
                 allowFiltering: finalConfig.allowFiltering,
+                allowLlmFiltering: finalConfig.allowLlmFiltering,
               }}
             />
 

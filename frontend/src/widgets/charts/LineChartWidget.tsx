@@ -79,7 +79,8 @@ const LineChartWidget: React.FC<LineChartWidgetProps> = ({
   const styles: React.CSSProperties = {
     ...getWidth(width),
     ...getHeight(height),
-    minHeight: 300,
+    display: 'flex',
+    flexDirection: 'column',
   };
 
   const colors = getColors(colorScheme);
@@ -88,7 +89,7 @@ const LineChartWidget: React.FC<LineChartWidgetProps> = ({
     getTransformValueFn(data);
 
   const option = {
-    grid: generateEChartGrid(cartesianGrid),
+    grid: generateEChartGrid(cartesianGrid, !!legend),
     xAxis: generateXAxis(categories as string[], xAxis, false, {
       mutedForeground: themeColors.mutedForeground,
       fontSans: themeColors.fontSans,
@@ -128,7 +129,17 @@ const LineChartWidget: React.FC<LineChartWidgetProps> = ({
     ),
   };
 
-  return <ReactECharts key={theme} option={option} style={styles} />;
+  return (
+    <div style={styles}>
+      <div style={{ flex: 1, minHeight: 0 }}>
+        <ReactECharts
+          key={theme}
+          option={option}
+          style={{ height: '100%', width: '100%' }}
+        />
+      </div>
+    </div>
+  );
 };
 
 export default LineChartWidget;

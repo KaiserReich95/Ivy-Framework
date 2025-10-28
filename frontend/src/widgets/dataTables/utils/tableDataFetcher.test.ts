@@ -63,7 +63,7 @@ describe('tableDataFetcher', () => {
       const result = await fetchTableData(mockConnection, 0, 10);
 
       expect(mockGrpcTableService.queryTable).toHaveBeenCalledWith({
-        serverUrl: 'https://localhost:8080',
+        serverUrl: 'https://localhost:3000',
         query: {
           limit: 10,
           offset: 0,
@@ -113,7 +113,7 @@ describe('tableDataFetcher', () => {
       await fetchTableData(mockConnection, 0, 10, mockFilter);
 
       expect(mockGrpcTableService.queryTable).toHaveBeenCalledWith({
-        serverUrl: 'https://localhost:8080',
+        serverUrl: 'https://localhost:3000',
         query: {
           limit: 10,
           offset: 0,
@@ -144,7 +144,7 @@ describe('tableDataFetcher', () => {
       await fetchTableData(mockConnection, 0, 10, null, mockSort);
 
       expect(mockGrpcTableService.queryTable).toHaveBeenCalledWith({
-        serverUrl: 'https://localhost:8080',
+        serverUrl: 'https://localhost:3000',
         query: {
           limit: 10,
           offset: 0,
@@ -182,7 +182,7 @@ describe('tableDataFetcher', () => {
       await fetchTableData(mockConnection, 5, 20, mockFilter, mockSort);
 
       expect(mockGrpcTableService.queryTable).toHaveBeenCalledWith({
-        serverUrl: 'https://localhost:8080',
+        serverUrl: 'https://localhost:3000',
         query: {
           limit: 20,
           offset: 5,
@@ -236,7 +236,7 @@ describe('tableDataFetcher', () => {
       await fetchTableData(mockConnection, 0, 10);
 
       expect(mockGrpcTableService.queryTable).toHaveBeenCalledWith({
-        serverUrl: 'http://example.com:8080',
+        serverUrl: 'http://example.com:9000/path',
         query: expect.any(Object),
       });
     });
@@ -261,7 +261,7 @@ describe('tableDataFetcher', () => {
       consoleSpy.mockRestore();
     });
 
-    it('should use correct port from connection', async () => {
+    it('should use serverUrl from getIvyHost regardless of connection port', async () => {
       const customConnection: DataTableConnection = {
         ...mockConnection,
         port: 9999,
@@ -283,8 +283,9 @@ describe('tableDataFetcher', () => {
 
       await fetchTableData(customConnection, 0, 10);
 
+      // Should use getIvyHost() return value, not connection.port
       expect(mockGrpcTableService.queryTable).toHaveBeenCalledWith({
-        serverUrl: 'https://localhost:9999',
+        serverUrl: 'https://localhost:3000',
         query: expect.any(Object),
       });
     });
@@ -307,7 +308,7 @@ describe('tableDataFetcher', () => {
       await fetchTableData(mockConnection, 0, 10, null, null);
 
       expect(mockGrpcTableService.queryTable).toHaveBeenCalledWith({
-        serverUrl: 'https://localhost:8080',
+        serverUrl: 'https://localhost:3000',
         query: {
           limit: 10,
           offset: 0,
@@ -315,6 +316,41 @@ describe('tableDataFetcher', () => {
           sourceId: 'source-456',
         },
       });
+    });
+
+    it('should use serverUrl from getIvyHost regardless of NODE_ENV', async () => {
+      // Set NODE_ENV to development (this should not affect the behavior anymore)
+      process.env.NODE_ENV = 'development';
+
+      const mockResult = {
+        arrow_ipc_stream: new Uint8Array([1, 2, 3]),
+        offset: 0,
+        row_count: 2,
+        total_rows: 100,
+      };
+      mockGrpcTableService.queryTable.mockResolvedValue(mockResult);
+      mockArrow.tableFromIPC.mockReturnValue({} as arrow.Table);
+      mockConvertArrowTableToData.mockReturnValue({
+        columns: mockColumns,
+        rows: mockRows,
+        hasMore: false,
+      });
+
+      await fetchTableData(mockConnection, 0, 10);
+
+      // Should use getIvyHost() return value, NODE_ENV should not affect it
+      expect(mockGrpcTableService.queryTable).toHaveBeenCalledWith({
+        serverUrl: 'https://localhost:3000',
+        query: {
+          limit: 10,
+          offset: 0,
+          connectionId: 'conn-123',
+          sourceId: 'source-456',
+        },
+      });
+
+      // Clean up
+      delete process.env.NODE_ENV;
     });
   });
 });
