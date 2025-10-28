@@ -54,16 +54,6 @@ public class DefaultSidebarChrome(ChromeSettings settings) : ViewBase
         return 0;
     }
 
-    private string? _initialAppId = settings.DefaultAppId;
-
-    public override void ThisIsAHackButPleaseSetTheInitialAppId(string? appId)
-    {
-        if (!string.IsNullOrWhiteSpace(appId))
-        {
-            _initialAppId = appId;
-        }
-    }
-
     public override object? Build()
     {
         var tabs = UseState(ImmutableArray.Create<TabState>);
@@ -202,9 +192,11 @@ public class DefaultSidebarChrome(ChromeSettings settings) : ViewBase
                 var userInfo = await TimeoutHelper.WithTimeoutAsync(auth.GetUserInfoAsync);
                 user.Set(userInfo);
             }
-            if (!string.IsNullOrEmpty(_initialAppId))
+
+            var initialAppId = args.NavigationAppId ?? settings.DefaultAppId;
+            if (!string.IsNullOrWhiteSpace(initialAppId))
             {
-                OpenApp(new NavigateArgs(_initialAppId), replaceHistory: true);
+                OpenApp(new NavigateArgs(initialAppId), replaceHistory: true);
             }
         });
 

@@ -80,7 +80,7 @@ public class AppHub(
         return null;
     }
 
-    public AppArgs GetAppArgs(string connectionId, string appId, HttpContext httpContext)
+    public AppArgs GetAppArgs(string connectionId, string appId, string? navigationAppId, HttpContext httpContext)
     {
         string? appArgs = null;
         if (httpContext!.Request.Query.ContainsKey("appArgs"))
@@ -89,7 +89,7 @@ public class AppHub(
         }
 
         HttpRequest request = httpContext.Request;
-        return new AppArgs(connectionId, appId, appArgs ?? server.Args?.Args, request.Scheme, request.Host.Value!);
+        return new AppArgs(connectionId, appId, navigationAppId, appArgs ?? server.Args?.Args, request.Scheme, request.Host.Value!);
     }
 
     public override async Task OnConnectedAsync()
@@ -167,7 +167,7 @@ public class AppHub(
                 }
             }
 
-            var appArgs = GetAppArgs(Context.ConnectionId, appId, httpContext);
+            var appArgs = GetAppArgs(Context.ConnectionId, appId, navigationAppId, httpContext);
             var appDescriptor = server.GetApp(appId);
 
             logger.LogInformation($"Connected: {Context.ConnectionId} [{appId}]");
@@ -181,10 +181,6 @@ public class AppHub(
             var serviceProvider = new CompositeServiceProvider(appServices, server.Services);
 
             var app = appDescriptor.CreateApp();
-            if (!string.IsNullOrWhiteSpace(navigationAppId))
-            {
-                app.ThisIsAHackButPleaseSetTheInitialAppId(navigationAppId);
-            }
 
             var widgetTree = new WidgetTree(app, contentBuilder, serviceProvider);
 
