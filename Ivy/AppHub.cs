@@ -42,6 +42,11 @@ public class AppHub(
         if (httpContext!.Request.Query.ContainsKey("appId"))
         {
             var id = httpContext!.Request.Query["appId"].ToString();
+            if (string.IsNullOrEmpty(id))
+            {
+                id = null;
+            }
+
             if (chrome)
             {
                 navigationAppId = id;
