@@ -78,6 +78,9 @@ public class TextInputApp : SampleBase
                   | withValue.ToSearchInput().Invalid("Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam nec purus nec eros")
                )
 
+                | Text.H2("Prefix and Suffix")
+                | CreatePrefixSuffixSection()
+
                //Data Binding:
 
                | Text.H2("Data Binding")
@@ -135,5 +138,26 @@ public class TextInputApp : SampleBase
                | searchState.ToSearchInput().Small()
                | searchState.ToSearchInput()
                | searchState.ToSearchInput().Large();
+    }
+
+    private object CreatePrefixSuffixSection()
+    {
+        var textState = UseState("example");
+
+        return Layout.Grid().Columns(4)
+               | null!
+               | Text.InlineCode("Prefix only")
+               | Text.InlineCode("Suffix only")
+               | Text.InlineCode("Both")
+
+               | Text.InlineCode("Text prefix/suffix")
+               | new TextInput(textState).Prefix("https://")
+               | new TextInput(textState).Suffix(".com")
+               | new TextInput(textState).Prefix("https://").Suffix(".com")
+
+               | Text.InlineCode("Icon prefix/suffix")
+               | new TextInput(textState).Prefix(Icons.Mail)
+               | new TextInput(textState).Suffix(Icons.Mail)
+               | new TextInput(textState).Prefix(Icons.Mail).Suffix(Icons.Mail);
     }
 }

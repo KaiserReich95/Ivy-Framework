@@ -15,6 +15,7 @@ import { useFocusable } from '@/hooks/use-focus-management';
 import { useEventHandler } from '@/components/event-handler';
 import { sidebarMenuRef } from '../layouts/sidebar';
 import { Sizes } from '@/types/sizes';
+import Icon from '@/components/Icon';
 import {
   textInputSizeVariants,
   searchIconVariants,
@@ -41,6 +42,10 @@ interface TextInputWidgetProps {
   height?: string;
   shortcutKey?: string;
   size?: Sizes;
+  prefixText?: string;
+  prefixIcon?: string;
+  suffixText?: string;
+  suffixIcon?: string;
   'data-testid'?: string;
 }
 
@@ -143,6 +148,16 @@ const useEnterKeyBlur = () => {
   );
 };
 
+const renderPrefixSuffix = (text?: string, icon?: string): React.ReactNode => {
+  if (icon) {
+    return <Icon name={icon} className="w-4 h-4" />;
+  }
+  if (text) {
+    return <span className="text-sm">{text}</span>;
+  }
+  return null;
+};
+
 const DefaultVariant: React.FC<{
   type: Lowercase<TextInputWidgetProps['variant']>;
   props: Omit<TextInputWidgetProps, 'variant'>;
@@ -176,40 +191,76 @@ const DefaultVariant: React.FC<{
 
   const shortcutDisplay = formatShortcutForDisplay(props.shortcutKey);
   const hasValue = props.value && props.value.toString().trim() !== '';
+  const prefixContent = renderPrefixSuffix(props.prefixText, props.prefixIcon);
+  const suffixContent = renderPrefixSuffix(props.suffixText, props.suffixIcon);
+
+  const hasAffixes = prefixContent || suffixContent;
 
   return (
     <div className="relative w-full select-none" style={styles}>
-      <Input
-        ref={elementRef as React.RefObject<HTMLInputElement>}
-        id={props.id}
-        placeholder={props.placeholder}
-        value={props.value}
-        type={type}
-        disabled={props.disabled}
-        onChange={handleChange}
-        onBlur={onBlur}
-        onFocus={onFocus}
-        onKeyDown={handleKeyDown}
+      <div
         className={cn(
-          textInputSizeVariants({ size }),
-          props.invalid && inputStyles.invalidInput,
-          props.invalid && 'pr-8',
-          props.shortcutKey && !isFocused && !hasValue && 'pr-16'
+          'relative flex items-stretch',
+          hasAffixes &&
+            'rounded-md border border-input bg-background shadow-sm transition-colors',
+          hasAffixes && isFocused && 'border-ring',
+          hasAffixes && props.invalid && 'border-destructive',
+          hasAffixes && props.disabled && 'cursor-not-allowed opacity-50'
         )}
-        data-testid={props['data-testid']}
-      />
-      {/* Icons container: shortcut (if any), then invalid (if any) */}
-      <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none h-6">
-        {props.shortcutKey && !isFocused && !hasValue && (
-          <div className="pointer-events-auto flex items-center h-6">
-            <kbd className="px-1 py-0.5 text-small-label font-medium text-foreground bg-muted border border-border rounded-md">
-              {shortcutDisplay}
-            </kbd>
+      >
+        {/* Prefix with background and separator */}
+        {prefixContent && (
+          <div className="flex items-center px-3 bg-muted text-muted-foreground border-r border-input rounded-l-md">
+            {prefixContent}
           </div>
         )}
-        {props.invalid && (
-          <div className="pointer-events-auto flex items-center h-6">
-            <InvalidIcon message={props.invalid} />
+
+        <Input
+          ref={elementRef as React.RefObject<HTMLInputElement>}
+          id={props.id}
+          placeholder={props.placeholder}
+          value={props.value}
+          type={type}
+          disabled={props.disabled}
+          onChange={handleChange}
+          onBlur={onBlur}
+          onFocus={onFocus}
+          onKeyDown={handleKeyDown}
+          className={cn(
+            textInputSizeVariants({ size }),
+            props.invalid && inputStyles.invalidInput,
+            props.invalid && 'pr-8',
+            props.shortcutKey && !isFocused && !hasValue && 'pr-16',
+            hasAffixes &&
+              'border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0',
+            prefixContent && 'rounded-l-none',
+            suffixContent && 'rounded-r-none'
+          )}
+          data-testid={props['data-testid']}
+        />
+
+        {/* Suffix with background and separator */}
+        {suffixContent && (
+          <div className="flex items-center px-3 bg-muted text-muted-foreground border-l border-input rounded-r-md">
+            {suffixContent}
+          </div>
+        )}
+
+        {/* Right side container: shortcut (if any), then invalid (if any) */}
+        {(props.shortcutKey || props.invalid) && (
+          <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none h-6">
+            {props.shortcutKey && !isFocused && !hasValue && (
+              <div className="pointer-events-auto flex items-center h-6">
+                <kbd className="px-1 py-0.5 text-small-label font-medium text-foreground bg-muted border border-border rounded-md">
+                  {shortcutDisplay}
+                </kbd>
+              </div>
+            )}
+            {props.invalid && (
+              <div className="pointer-events-auto flex items-center h-6">
+                <InvalidIcon message={props.invalid} />
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -542,6 +593,10 @@ export const TextInputWidget: React.FC<TextInputWidgetProps> = ({
   events,
   shortcutKey,
   size,
+  prefixText,
+  prefixIcon,
+  suffixText,
+  suffixIcon,
   'data-testid': dataTestId,
 }) => {
   const eventHandler = useEventHandler();
@@ -625,6 +680,10 @@ export const TextInputWidget: React.FC<TextInputWidgetProps> = ({
       events,
       shortcutKey,
       size,
+      prefixText,
+      prefixIcon,
+      suffixText,
+      suffixIcon,
       'data-testid': dataTestId,
     }),
     [
@@ -638,6 +697,10 @@ export const TextInputWidget: React.FC<TextInputWidgetProps> = ({
       height,
       shortcutKey,
       size,
+      prefixText,
+      prefixIcon,
+      suffixText,
+      suffixIcon,
       dataTestId,
     ]
   );
