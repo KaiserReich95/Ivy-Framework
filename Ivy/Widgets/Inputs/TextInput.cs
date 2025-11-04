@@ -272,22 +272,58 @@ public static class TextInputExtensions
     /// <summary>Sets the text prefix displayed before the input field.</summary>
     /// <param name="widget">The text input to configure.</param>
     /// <param name="prefixText">The text to display before the input.</param>
-    public static TextInput<TString> Prefix<TString>(this TextInput<TString> widget, string prefixText) => widget with { PrefixText = prefixText };
+    /// <exception cref="InvalidOperationException">Thrown when a prefix icon is already set.</exception>
+    /// <remarks>Only one of text prefix or icon prefix can be set. If an icon prefix is already configured, this method will throw an exception.</remarks>
+    public static TextInput<TString> Prefix<TString>(this TextInput<TString> widget, string prefixText)
+    {
+        if (widget.PrefixIcon.HasValue)
+        {
+            throw new InvalidOperationException("Cannot set both PrefixText and PrefixIcon. A prefix icon is already configured.");
+        }
+        return widget with { PrefixText = prefixText };
+    }
 
     /// <summary>Sets the icon prefix displayed before the input field.</summary>
     /// <param name="widget">The text input to configure.</param>
     /// <param name="prefixIcon">The icon to display before the input.</param>
-    public static TextInput<TString> Prefix<TString>(this TextInput<TString> widget, Icons prefixIcon) => widget with { PrefixIcon = prefixIcon };
+    /// <exception cref="InvalidOperationException">Thrown when a prefix text is already set.</exception>
+    /// <remarks>Only one of text prefix or icon prefix can be set. If a text prefix is already configured, this method will throw an exception.</remarks>
+    public static TextInput<TString> Prefix<TString>(this TextInput<TString> widget, Icons prefixIcon)
+    {
+        if (!string.IsNullOrEmpty(widget.PrefixText))
+        {
+            throw new InvalidOperationException("Cannot set both PrefixText and PrefixIcon. A prefix text is already configured.");
+        }
+        return widget with { PrefixIcon = prefixIcon };
+    }
 
     /// <summary>Sets the text suffix displayed after the input field.</summary>
     /// <param name="widget">The text input to configure.</param>
     /// <param name="suffixText">The text to display after the input.</param>
-    public static TextInput<TString> Suffix<TString>(this TextInput<TString> widget, string suffixText) => widget with { SuffixText = suffixText };
+    /// <exception cref="InvalidOperationException">Thrown when a suffix icon is already set.</exception>
+    /// <remarks>Only one of text suffix or icon suffix can be set. If an icon suffix is already configured, this method will throw an exception.</remarks>
+    public static TextInput<TString> Suffix<TString>(this TextInput<TString> widget, string suffixText)
+    {
+        if (widget.SuffixIcon.HasValue)
+        {
+            throw new InvalidOperationException("Cannot set both SuffixText and SuffixIcon. A suffix icon is already configured.");
+        }
+        return widget with { SuffixText = suffixText };
+    }
 
     /// <summary>Sets the icon suffix displayed after the input field.</summary>
     /// <param name="widget">The text input to configure.</param>
     /// <param name="suffixIcon">The icon to display after the input.</param>
-    public static TextInput<TString> Suffix<TString>(this TextInput<TString> widget, Icons suffixIcon) => widget with { SuffixIcon = suffixIcon };
+    /// <exception cref="InvalidOperationException">Thrown when a suffix text is already set.</exception>
+    /// <remarks>Only one of text suffix or icon suffix can be set. If a text suffix is already configured, this method will throw an exception.</remarks>
+    public static TextInput<TString> Suffix<TString>(this TextInput<TString> widget, Icons suffixIcon)
+    {
+        if (!string.IsNullOrEmpty(widget.SuffixText))
+        {
+            throw new InvalidOperationException("Cannot set both SuffixText and SuffixIcon. A suffix text is already configured.");
+        }
+        return widget with { SuffixIcon = suffixIcon };
+    }
 
     /// <summary> Sets the blur event handler for the text input. </summary>
     /// <param name="widget">The text input to configure.</param>

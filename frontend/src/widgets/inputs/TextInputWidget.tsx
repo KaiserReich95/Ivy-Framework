@@ -148,6 +148,11 @@ const useEnterKeyBlur = () => {
   );
 };
 
+/**
+ * Renders either text or icon for prefix/suffix display.
+ * Note: Backend validation prevents both text and icon from being set simultaneously.
+ * If both are somehow provided, icon takes precedence over text.
+ */
 const renderPrefixSuffix = (text?: string, icon?: string): React.ReactNode => {
   if (icon) {
     return <Icon name={icon} className="w-4 h-4" />;
