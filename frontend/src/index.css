@@ -114,7 +114,7 @@
     --sidebar-foreground: oklch(0.26 0 0);
     --sidebar-primary: #00cc92;
     --sidebar-primary-foreground: oklch(0.99 0 0);
-    --sidebar-accent: #dfdfdf;
+    --sidebar-accent: #eaebeb;
     --sidebar-accent-foreground: oklch(0.33 0 0);
     --sidebar-border: #d1d5db;
     --sidebar-ring: oklch(0.77 0 0);
@@ -464,6 +464,18 @@
 
   [data-sidebar='sidebar'] svg[fill='currentColor'] {
     color: var(--primary);
+  }
+
+  /* Make ghost buttons use sidebar-accent when inside sidebar */
+  [data-sidebar='sidebar'] button:hover,
+  .bg-sidebar button:hover {
+    background-color: var(--sidebar-accent) !important;
+  }
+
+  /* Make dropdown menu items use sidebar-accent when opened from sidebar */
+  .dropdown-in-sidebar [role='menuitem']:focus,
+  .dropdown-in-sidebar [role='menuitem']:hover {
+    background-color: var(--sidebar-accent) !important;
   }
 }
 
