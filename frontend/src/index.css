@@ -466,9 +466,8 @@
     color: var(--primary);
   }
 
-  /* Make ghost buttons use sidebar-accent when inside sidebar */
-  [data-sidebar='sidebar'] button:hover,
-  .bg-sidebar button:hover {
+  /* Make rounded buttons (Button components) use sidebar-accent when inside sidebar */
+  .bg-sidebar button.rounded-md:hover {
     background-color: var(--sidebar-accent) !important;
   }
 
