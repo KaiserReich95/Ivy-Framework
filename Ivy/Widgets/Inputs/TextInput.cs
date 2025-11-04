@@ -1,4 +1,6 @@
 using System.Runtime.CompilerServices;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Ivy.Core;
 using Ivy.Core.Helpers;
@@ -26,6 +28,75 @@ public enum TextInputs
     Password,
     /// <summary>Search input optimized for search queries with search-specific styling and behavior.</summary>
     Search
+}
+
+/// <summary> Represents a prefix or suffix that can be either text or an icon, but not both. </summary>
+public abstract record PrefixSuffix
+{
+    private PrefixSuffix() { } // Prevent external inheritance
+
+    /// <summary>Represents a text-based prefix or suffix.</summary>
+    public sealed record Text(string Value) : PrefixSuffix;
+
+    /// <summary>Represents an icon-based prefix or suffix.</summary>
+    public sealed record Icon(Icons Value) : PrefixSuffix;
+}
+
+/// <summary> JSON converter factory for PrefixSuffix discriminated union. </summary>
+internal class PrefixSuffixJsonConverterFactory : JsonConverterFactory
+{
+    public override bool CanConvert(Type typeToConvert)
+    {
+        return typeof(PrefixSuffix).IsAssignableFrom(typeToConvert);
+    }
+
+    public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options)
+    {
+        return new PrefixSuffixJsonConverter();
+    }
+}
+
+/// <summary> JSON converter for PrefixSuffix discriminated union. </summary>
+internal class PrefixSuffixJsonConverter : JsonConverter<PrefixSuffix>
+{
+    public override PrefixSuffix? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        using var doc = JsonDocument.ParseValue(ref reader);
+        var root = doc.RootElement;
+
+        if (!root.TryGetProperty("type", out var typeElement) || !root.TryGetProperty("value", out var valueElement))
+        {
+            return null;
+        }
+
+        var type = typeElement.GetString();
+
+        return type switch
+        {
+            "text" => new PrefixSuffix.Text(valueElement.GetString() ?? string.Empty),
+            "icon" => new PrefixSuffix.Icon(Enum.Parse<Icons>(valueElement.GetString() ?? string.Empty)),
+            _ => null
+        };
+    }
+
+    public override void Write(Utf8JsonWriter writer, PrefixSuffix value, JsonSerializerOptions options)
+    {
+        writer.WriteStartObject();
+
+        switch (value)
+        {
+            case PrefixSuffix.Text text:
+                writer.WriteString("type", "text");
+                writer.WriteString("value", text.Value);
+                break;
+            case PrefixSuffix.Icon icon:
+                writer.WriteString("type", "icon");
+                writer.WriteString("value", icon.Value.ToString());
+                break;
+        }
+
+        writer.WriteEndObject();
+    }
 }
 
 /// <summary> Interface for text input controls that extends IAnyInput with text-specific properties. </summary>
@@ -70,17 +141,11 @@ public abstract record TextInputBase : WidgetBase<TextInputBase>, IAnyTextInput
 /// <typeparam name="TString">The type of the text value (typically string or string-convertible types).</typeparam>
 public record TextInput<TString> : TextInputBase, IInput<TString>
 {
-    /// <summary>Gets or sets the text prefix displayed before the input field.</summary>
-    [Prop] public string? PrefixText { get; set; }
+    /// <summary>Gets or sets the prefix displayed before the input field (either text or icon).</summary>
+    [Prop] public PrefixSuffix? Prefix { get; set; }
 
-    /// <summary>Gets or sets the icon prefix displayed before the input field.</summary>
-    [Prop] public Icons? PrefixIcon { get; set; }
-
-    /// <summary>Gets or sets the text suffix displayed after the input field.</summary>
-    [Prop] public string? SuffixText { get; set; }
-
-    /// <summary>Gets or sets the icon suffix displayed after the input field.</summary>
-    [Prop] public Icons? SuffixIcon { get; set; }
+    /// <summary>Gets or sets the suffix displayed after the input field (either text or icon).</summary>
+    [Prop] public PrefixSuffix? Suffix { get; set; }
 
     /// <summary> Initializes a new text input bound to a state object for automatic value synchronization. </summary>
     /// <param name="state">The state object to bind the text input to.</param>
@@ -272,58 +337,26 @@ public static class TextInputExtensions
     /// <summary>Sets the text prefix displayed before the input field.</summary>
     /// <param name="widget">The text input to configure.</param>
     /// <param name="prefixText">The text to display before the input.</param>
-    /// <exception cref="InvalidOperationException">Thrown when a prefix icon is already set.</exception>
-    /// <remarks>Only one of text prefix or icon prefix can be set. If an icon prefix is already configured, this method will throw an exception.</remarks>
     public static TextInput<TString> Prefix<TString>(this TextInput<TString> widget, string prefixText)
-    {
-        if (widget.PrefixIcon.HasValue)
-        {
-            throw new InvalidOperationException("Cannot set both PrefixText and PrefixIcon. A prefix icon is already configured.");
-        }
-        return widget with { PrefixText = prefixText };
-    }
+        => widget with { Prefix = new PrefixSuffix.Text(prefixText) };
 
     /// <summary>Sets the icon prefix displayed before the input field.</summary>
     /// <param name="widget">The text input to configure.</param>
     /// <param name="prefixIcon">The icon to display before the input.</param>
-    /// <exception cref="InvalidOperationException">Thrown when a prefix text is already set.</exception>
-    /// <remarks>Only one of text prefix or icon prefix can be set. If a text prefix is already configured, this method will throw an exception.</remarks>
     public static TextInput<TString> Prefix<TString>(this TextInput<TString> widget, Icons prefixIcon)
-    {
-        if (!string.IsNullOrEmpty(widget.PrefixText))
-        {
-            throw new InvalidOperationException("Cannot set both PrefixText and PrefixIcon. A prefix text is already configured.");
-        }
-        return widget with { PrefixIcon = prefixIcon };
-    }
+        => widget with { Prefix = new PrefixSuffix.Icon(prefixIcon) };
 
     /// <summary>Sets the text suffix displayed after the input field.</summary>
     /// <param name="widget">The text input to configure.</param>
     /// <param name="suffixText">The text to display after the input.</param>
-    /// <exception cref="InvalidOperationException">Thrown when a suffix icon is already set.</exception>
-    /// <remarks>Only one of text suffix or icon suffix can be set. If an icon suffix is already configured, this method will throw an exception.</remarks>
     public static TextInput<TString> Suffix<TString>(this TextInput<TString> widget, string suffixText)
-    {
-        if (widget.SuffixIcon.HasValue)
-        {
-            throw new InvalidOperationException("Cannot set both SuffixText and SuffixIcon. A suffix icon is already configured.");
-        }
-        return widget with { SuffixText = suffixText };
-    }
+        => widget with { Suffix = new PrefixSuffix.Text(suffixText) };
 
     /// <summary>Sets the icon suffix displayed after the input field.</summary>
     /// <param name="widget">The text input to configure.</param>
     /// <param name="suffixIcon">The icon to display after the input.</param>
-    /// <exception cref="InvalidOperationException">Thrown when a suffix text is already set.</exception>
-    /// <remarks>Only one of text suffix or icon suffix can be set. If a text suffix is already configured, this method will throw an exception.</remarks>
     public static TextInput<TString> Suffix<TString>(this TextInput<TString> widget, Icons suffixIcon)
-    {
-        if (!string.IsNullOrEmpty(widget.SuffixText))
-        {
-            throw new InvalidOperationException("Cannot set both SuffixText and SuffixIcon. A suffix text is already configured.");
-        }
-        return widget with { SuffixIcon = suffixIcon };
-    }
+        => widget with { Suffix = new PrefixSuffix.Icon(suffixIcon) };
 
     /// <summary> Sets the blur event handler for the text input. </summary>
     /// <param name="widget">The text input to configure.</param>

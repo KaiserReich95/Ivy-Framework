@@ -23,6 +23,10 @@ import {
   eyeIconVariants,
 } from '@/components/ui/input/text-input-variants';
 
+type PrefixSuffix =
+  | { type: 'text'; value: string }
+  | { type: 'icon'; value: string };
+
 interface TextInputWidgetProps {
   id: string;
   placeholder?: string;
@@ -42,10 +46,8 @@ interface TextInputWidgetProps {
   height?: string;
   shortcutKey?: string;
   size?: Sizes;
-  prefixText?: string;
-  prefixIcon?: string;
-  suffixText?: string;
-  suffixIcon?: string;
+  prefix?: PrefixSuffix;
+  suffix?: PrefixSuffix;
   'data-testid'?: string;
 }
 
@@ -150,17 +152,16 @@ const useEnterKeyBlur = () => {
 
 /**
  * Renders either text or icon for prefix/suffix display.
- * Note: Backend validation prevents both text and icon from being set simultaneously.
- * If both are somehow provided, icon takes precedence over text.
+ * Uses discriminated union type to ensure only one type can be set.
  */
-const renderPrefixSuffix = (text?: string, icon?: string): React.ReactNode => {
-  if (icon) {
-    return <Icon name={icon} className="w-4 h-4" />;
+const renderPrefixSuffix = (prefixSuffix?: PrefixSuffix): React.ReactNode => {
+  if (!prefixSuffix) return null;
+
+  if (prefixSuffix.type === 'icon') {
+    return <Icon name={prefixSuffix.value} className="w-4 h-4" />;
   }
-  if (text) {
-    return <span className="text-sm">{text}</span>;
-  }
-  return null;
+
+  return <span className="text-sm">{prefixSuffix.value}</span>;
 };
 
 const DefaultVariant: React.FC<{
@@ -196,8 +197,8 @@ const DefaultVariant: React.FC<{
 
   const shortcutDisplay = formatShortcutForDisplay(props.shortcutKey);
   const hasValue = props.value && props.value.toString().trim() !== '';
-  const prefixContent = renderPrefixSuffix(props.prefixText, props.prefixIcon);
-  const suffixContent = renderPrefixSuffix(props.suffixText, props.suffixIcon);
+  const prefixContent = renderPrefixSuffix(props.prefix);
+  const suffixContent = renderPrefixSuffix(props.suffix);
 
   const hasAffixes = prefixContent || suffixContent;
 
@@ -598,10 +599,8 @@ export const TextInputWidget: React.FC<TextInputWidgetProps> = ({
   events,
   shortcutKey,
   size,
-  prefixText,
-  prefixIcon,
-  suffixText,
-  suffixIcon,
+  prefix,
+  suffix,
   'data-testid': dataTestId,
 }) => {
   const eventHandler = useEventHandler();
@@ -685,10 +684,8 @@ export const TextInputWidget: React.FC<TextInputWidgetProps> = ({
       events,
       shortcutKey,
       size,
-      prefixText,
-      prefixIcon,
-      suffixText,
-      suffixIcon,
+      prefix,
+      suffix,
       'data-testid': dataTestId,
     }),
     [
@@ -702,10 +699,8 @@ export const TextInputWidget: React.FC<TextInputWidgetProps> = ({
       height,
       shortcutKey,
       size,
-      prefixText,
-      prefixIcon,
-      suffixText,
-      suffixIcon,
+      prefix,
+      suffix,
       dataTestId,
     ]
   );
