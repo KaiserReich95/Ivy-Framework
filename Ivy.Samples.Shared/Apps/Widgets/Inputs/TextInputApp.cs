@@ -143,6 +143,7 @@ public class TextInputApp : SampleBase
     private object CreatePrefixSuffixSection()
     {
         var textState = UseState("example");
+        var nullableState = UseState<string?>((string?)null);
 
         return Layout.Grid().Columns(4)
                | null!
@@ -158,6 +159,16 @@ public class TextInputApp : SampleBase
                | Text.InlineCode("Icon prefix/suffix")
                | new TextInput(textState).Prefix(Icons.Mail)
                | new TextInput(textState).Suffix(Icons.Mail)
-               | new TextInput(textState).Prefix(Icons.Mail).Suffix(Icons.Mail);
+               | new TextInput(textState).Prefix(Icons.Mail).Suffix(Icons.Mail)
+
+               | Text.InlineCode("Nullable with prefix/suffix")
+               | new TextInput(nullableState).Prefix("$").Placeholder("Amount")
+               | new TextInput(nullableState).Suffix("%").Placeholder("Percentage")
+               | new TextInput(nullableState).Prefix("https://").Suffix(".com").Placeholder("domain")
+
+               | Text.InlineCode("Nullable + Invalid + ShortcutKey")
+               | new TextInput(nullableState).Prefix("@").Invalid("Required field").ShortcutKey("Ctrl+U")
+               | new TextInput(nullableState).Suffix(Icons.Search).Invalid("Invalid input").ShortcutKey("Ctrl+F")
+               | new TextInput(nullableState).Prefix(Icons.Mail).Suffix(".com").Invalid("Error").ShortcutKey("Ctrl+E");
     }
 }

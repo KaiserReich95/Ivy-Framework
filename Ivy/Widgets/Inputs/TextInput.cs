@@ -74,7 +74,7 @@ internal class PrefixSuffixJsonConverter : JsonConverter<PrefixSuffix>
         return type switch
         {
             "text" => new PrefixSuffix.Text(valueElement.GetString() ?? string.Empty),
-            "icon" => new PrefixSuffix.Icon(Enum.Parse<Icons>(valueElement.GetString() ?? string.Empty)),
+            "icon" => Enum.TryParse<Icons>(valueElement.GetString(), out var iconValue) ? new PrefixSuffix.Icon(iconValue) : null,
             _ => null
         };
     }
