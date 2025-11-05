@@ -221,52 +221,54 @@ const DefaultVariant: React.FC<{
           </div>
         )}
 
-        <Input
-          ref={elementRef as React.RefObject<HTMLInputElement>}
-          id={props.id}
-          placeholder={props.placeholder}
-          value={props.value}
-          type={type}
-          disabled={props.disabled}
-          onChange={handleChange}
-          onBlur={onBlur}
-          onFocus={onFocus}
-          onKeyDown={handleKeyDown}
-          className={cn(
-            textInputSizeVariants({ size }),
-            props.invalid && inputStyles.invalidInput,
-            props.invalid && 'pr-8',
-            props.shortcutKey && !isFocused && !hasValue && 'pr-16',
-            hasAffixes &&
-              'border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0',
-            prefixContent && 'rounded-l-none',
-            suffixContent && 'rounded-r-none'
+        <div className="relative flex-1">
+          <Input
+            ref={elementRef as React.RefObject<HTMLInputElement>}
+            id={props.id}
+            placeholder={props.placeholder}
+            value={props.value}
+            type={type}
+            disabled={props.disabled}
+            onChange={handleChange}
+            onBlur={onBlur}
+            onFocus={onFocus}
+            onKeyDown={handleKeyDown}
+            className={cn(
+              textInputSizeVariants({ size }),
+              props.invalid && inputStyles.invalidInput,
+              props.invalid && 'pr-8',
+              props.shortcutKey && !isFocused && !hasValue && 'pr-16',
+              hasAffixes &&
+                'border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0',
+              prefixContent && 'rounded-l-none',
+              suffixContent && 'rounded-r-none'
+            )}
+            data-testid={props['data-testid']}
+          />
+
+          {/* Right side container: shortcut (if any), then invalid (if any) */}
+          {(props.shortcutKey || props.invalid) && (
+            <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none h-6">
+              {props.shortcutKey && !isFocused && !hasValue && (
+                <div className="pointer-events-auto flex items-center h-6">
+                  <kbd className="px-1 py-0.5 text-small-label font-medium text-foreground bg-muted border border-border rounded-md">
+                    {shortcutDisplay}
+                  </kbd>
+                </div>
+              )}
+              {props.invalid && (
+                <div className="pointer-events-auto flex items-center h-6">
+                  <InvalidIcon message={props.invalid} />
+                </div>
+              )}
+            </div>
           )}
-          data-testid={props['data-testid']}
-        />
+        </div>
 
         {/* Suffix with background and separator */}
         {suffixContent && (
           <div className="flex items-center px-3 bg-muted text-muted-foreground border-l border-input rounded-r-md">
             {suffixContent}
-          </div>
-        )}
-
-        {/* Right side container: shortcut (if any), then invalid (if any) */}
-        {(props.shortcutKey || props.invalid) && (
-          <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-2 pointer-events-none h-6">
-            {props.shortcutKey && !isFocused && !hasValue && (
-              <div className="pointer-events-auto flex items-center h-6">
-                <kbd className="px-1 py-0.5 text-small-label font-medium text-foreground bg-muted border border-border rounded-md">
-                  {shortcutDisplay}
-                </kbd>
-              </div>
-            )}
-            {props.invalid && (
-              <div className="pointer-events-auto flex items-center h-6">
-                <InvalidIcon message={props.invalid} />
-              </div>
-            )}
           </div>
         )}
       </div>
