@@ -42,17 +42,6 @@ export const DropDownMenuWidget: React.FC<DropDownMenuWidgetProps> = ({
   const eventHandler = useEventHandler();
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const [isInSidebar, setIsInSidebar] = useState(false);
-
-  // Check if this dropdown is inside a sidebar
-  React.useEffect(() => {
-    if (triggerRef.current) {
-      const sidebar = triggerRef.current.closest(
-        '.bg-sidebar, [data-sidebar="sidebar"]'
-      );
-      setIsInSidebar(!!sidebar);
-    }
-  }, []);
 
   if (!slots?.Trigger) {
     return (
@@ -148,9 +137,7 @@ export const DropDownMenuWidget: React.FC<DropDownMenuWidgetProps> = ({
               )}
             </DropdownMenuSubTrigger>
             <DropdownMenuPortal>
-              <DropdownMenuSubContent
-                className={`m-2 ${isInSidebar ? 'dropdown-in-sidebar' : ''}`}
-              >
+              <DropdownMenuSubContent className="m-2">
                 {renderMenuItems(item.children)}
               </DropdownMenuSubContent>
             </DropdownMenuPortal>
@@ -185,7 +172,7 @@ export const DropDownMenuWidget: React.FC<DropDownMenuWidgetProps> = ({
         side={
           camelCase(side) as 'top' | 'right' | 'bottom' | 'left' | undefined
         }
-        className={`m-2 ${isInSidebar ? 'dropdown-in-sidebar' : ''}`}
+        className="m-2"
         alignOffset={alignOffset}
       >
         {slots.Header && <DropdownMenuLabel>{slots.Header}</DropdownMenuLabel>}
