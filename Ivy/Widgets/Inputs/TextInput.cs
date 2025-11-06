@@ -130,6 +130,12 @@ public abstract record TextInputBase : WidgetBase<TextInputBase>, IAnyTextInput
     /// <summary>Gets or sets the size of the text input.</summary>
     [Prop] public Sizes Size { get; set; } = Sizes.Medium;
 
+    /// <summary>Gets or sets the prefix displayed before the input field (either text or icon).</summary>
+    [Prop] public PrefixSuffix? Prefix { get; set; }
+
+    /// <summary>Gets or sets the suffix displayed after the input field (either text or icon).</summary>
+    [Prop] public PrefixSuffix? Suffix { get; set; }
+
     /// <summary>Gets or sets the event handler called when the input loses focus.</summary>
     [Event] public Func<Event<IAnyInput>, ValueTask>? OnBlur { get; set; }
 
@@ -141,12 +147,6 @@ public abstract record TextInputBase : WidgetBase<TextInputBase>, IAnyTextInput
 /// <typeparam name="TString">The type of the text value (typically string or string-convertible types).</typeparam>
 public record TextInput<TString> : TextInputBase, IInput<TString>
 {
-    /// <summary>Gets or sets the prefix displayed before the input field (either text or icon).</summary>
-    [Prop] public PrefixSuffix? Prefix { get; set; }
-
-    /// <summary>Gets or sets the suffix displayed after the input field (either text or icon).</summary>
-    [Prop] public PrefixSuffix? Suffix { get; set; }
-
     /// <summary> Initializes a new text input bound to a state object for automatic value synchronization. </summary>
     /// <param name="state">The state object to bind the text input to.</param>
     /// <param name="placeholder">Optional placeholder text displayed when the input is empty.</param>
@@ -337,25 +337,25 @@ public static class TextInputExtensions
     /// <summary>Sets the text prefix displayed before the input field.</summary>
     /// <param name="widget">The text input to configure.</param>
     /// <param name="prefixText">The text to display before the input.</param>
-    public static TextInput<TString> Prefix<TString>(this TextInput<TString> widget, string prefixText)
+    public static TextInputBase Prefix(this TextInputBase widget, string prefixText)
         => widget with { Prefix = new PrefixSuffix.Text(prefixText) };
 
     /// <summary>Sets the icon prefix displayed before the input field.</summary>
     /// <param name="widget">The text input to configure.</param>
     /// <param name="prefixIcon">The icon to display before the input.</param>
-    public static TextInput<TString> Prefix<TString>(this TextInput<TString> widget, Icons prefixIcon)
+    public static TextInputBase Prefix(this TextInputBase widget, Icons prefixIcon)
         => widget with { Prefix = new PrefixSuffix.Icon(prefixIcon) };
 
     /// <summary>Sets the text suffix displayed after the input field.</summary>
     /// <param name="widget">The text input to configure.</param>
     /// <param name="suffixText">The text to display after the input.</param>
-    public static TextInput<TString> Suffix<TString>(this TextInput<TString> widget, string suffixText)
+    public static TextInputBase Suffix(this TextInputBase widget, string suffixText)
         => widget with { Suffix = new PrefixSuffix.Text(suffixText) };
 
     /// <summary>Sets the icon suffix displayed after the input field.</summary>
     /// <param name="widget">The text input to configure.</param>
     /// <param name="suffixIcon">The icon to display after the input.</param>
-    public static TextInput<TString> Suffix<TString>(this TextInput<TString> widget, Icons suffixIcon)
+    public static TextInputBase Suffix(this TextInputBase widget, Icons suffixIcon)
         => widget with { Suffix = new PrefixSuffix.Icon(suffixIcon) };
 
     /// <summary> Sets the blur event handler for the text input. </summary>
