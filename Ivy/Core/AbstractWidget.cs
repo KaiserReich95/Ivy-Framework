@@ -86,7 +86,7 @@ public abstract record AbstractWidget : IWidget
             {
                 new JsonEnumConverter(),
                 new ValueTupleConverterFactory(),
-                new Ivy.PrefixSuffixJsonConverterFactory()
+                new PrefixSuffixJsonConverterFactory()
             }
         };
 

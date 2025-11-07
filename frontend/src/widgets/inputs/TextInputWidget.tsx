@@ -206,12 +206,10 @@ const DefaultVariant: React.FC<{
     <div className="relative w-full select-none" style={styles}>
       <div
         className={cn(
-          'relative flex items-stretch',
-          hasAffixes &&
-            'rounded-md border border-input bg-background shadow-sm transition-colors',
-          hasAffixes && isFocused && 'border-ring',
-          hasAffixes && props.invalid && 'border-destructive',
-          hasAffixes && props.disabled && 'cursor-not-allowed opacity-50'
+          'relative flex items-stretch rounded-md border border-input bg-transparent shadow-sm transition-colors',
+          isFocused && 'outline-none ring-1 ring-ring',
+          props.invalid && 'border-destructive',
+          props.disabled && 'cursor-not-allowed opacity-50'
         )}
       >
         {/* Prefix with background and separator */}
@@ -238,10 +236,10 @@ const DefaultVariant: React.FC<{
               props.invalid && inputStyles.invalidInput,
               props.invalid && 'pr-8',
               props.shortcutKey && !isFocused && !hasValue && 'pr-16',
-              hasAffixes &&
-                'border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0',
+              'border-0 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0',
               prefixContent && 'rounded-l-none',
-              suffixContent && 'rounded-r-none'
+              suffixContent && 'rounded-r-none',
+              !hasAffixes && 'rounded-md'
             )}
             data-testid={props['data-testid']}
           />
